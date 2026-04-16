@@ -28,12 +28,12 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 #AP{display:none;flex-direction:column;min-height:100vh}
 /* TOPBAR */
 .tb{background:var(--gn);color:#fff;padding:0 14px;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:200}
+.tabs{background:var(--sf);border-bottom:1px solid var(--bd);padding:0 10px;display:flex;overflow-x:auto;scrollbar-width:none;position:sticky;top:52px;z-index:190}
 .tb-r{display:flex;align-items:center;gap:8px}
 .av{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:1.5px solid rgba(255,255,255,.4)}
 .ib{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:5px 9px;border-radius:var(--rs);cursor:pointer;font-size:12px;font-family:inherit}
 .ib:hover{background:rgba(255,255,255,.25)}
-/* TABS */
-.tabs{background:var(--sf);border-bottom:1px solid var(--bd);padding:0 10px;display:flex;overflow-x:auto;scrollbar-width:none}
+/* TABS (desktop) */
 .tabs::-webkit-scrollbar{display:none}
 .tab{padding:10px 13px;cursor:pointer;font-size:13px;font-weight:500;color:var(--tx2);border-bottom:2.5px solid transparent;white-space:nowrap;transition:all .15s;flex-shrink:0}
 .tab:hover{color:var(--tx)}.tab.active{color:var(--gn);border-bottom-color:var(--gn);font-weight:700}
@@ -172,13 +172,15 @@ tbody tr{cursor:pointer}tbody tr:hover td{background:var(--sf2)}
   .g2,.g3{grid-template-columns:1fr}
   .ct{padding:10px;padding-bottom:80px} /* bottom nav clearance */
   /* Topbar: collapse store name, show only icon + avatar */
-  .tb{padding:0 10px;height:48px}
-  #tbn{display:none}
+  .tb{padding:0 10px;height:52px}
+  #tbn{display:inline-block;font-size:13px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #clk{display:none}
   .tb-r{gap:6px}
-  /* Tabs: hide on mobile — replaced by bottom nav */
-  .tabs{display:none}
-  /* Bottom navigation bar */
+  /* Tabs: scrollable on mobile instead of hidden */
+  .tabs{display:flex;padding:0 5px;border-bottom:1px solid var(--bd);background:var(--sf);position:sticky;top:52px;z-index:195;overflow-x:auto;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{padding:12px 10px;font-size:12px}
+  /* Bottom navigation bar: optional, but let's keep it visible if preferred, or hide if tabs are enough */
   #mobnav{display:flex}
   /* Cards tighter on mobile */
   .card{padding:12px;margin-bottom:10px}
@@ -213,19 +215,20 @@ tbody tr{cursor:pointer}tbody tr:hover td{background:var(--sf2)}
   display:none;
   position:fixed;bottom:0;left:0;right:0;
   background:var(--sf);border-top:1px solid var(--bd);
-  z-index:300;height:60px;
+  z-index:300;height:65px;
   overflow-x:auto;scrollbar-width:none;
   -webkit-overflow-scrolling:touch;
+  box-shadow:0 -2px 10px rgba(0,0,0,.05);
 }
 #mobnav::-webkit-scrollbar{display:none}
 .mnav-inner{display:flex;min-width:max-content;height:100%}
-.mni{display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:0 14px;cursor:pointer;font-size:9px;font-weight:600;color:var(--tx2);
-  border-bottom:2.5px solid transparent;white-space:nowrap;min-width:56px;
-  transition:color .15s,border-color .15s;-webkit-tap-highlight-color:transparent}
+  .mni{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:0 16px;cursor:pointer;font-size:10px;font-weight:600;color:var(--tx2);
+    border-bottom:3px solid transparent;white-space:nowrap;min-width:64px;
+    transition:all .15s;-webkit-tap-highlight-color:transparent}
 .mni:active{background:var(--sf2)}
 .mni.active{color:var(--gn);border-bottom-color:var(--gn)}
-.mni-icon{font-size:20px;margin-bottom:2px;line-height:1}
+  .mni-icon{font-size:22px;margin-bottom:3px;line-height:1}
 /* Touch-friendly: minimum 44px tap targets */
 .btn{min-height:38px}
 .qb{width:32px;height:32px}
@@ -1300,6 +1303,8 @@ function switchTab(t){
   TABS.forEach(tb=>{const el=$('mn-'+tb.id);if(el)el.classList.toggle('active',tb.id===t);});
   // Scroll mobile nav item into view
   const mni=$('mn-'+t);if(mni)mni.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+  // Also scroll desktop tabs into view on mobile
+  const tbi=$('tb-'+t);if(tbi)tbi.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   const p=$('tab-'+t);if(p)p.classList.add('active');
   // Scroll to top on tab switch (mobile UX)
