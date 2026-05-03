@@ -18147,14 +18147,29 @@ function qrHandleResult(code) {
     }
   } else {
     QR.pending = null;
-    if (msgEl) { msgEl.className = 'qr-notfound'; msgEl.innerHTML = `❓ No product found for: <code>${esc(code)}</code>`; }
     if (prevEl) prevEl.style.display = 'none';
     if (addBtn) addBtn.style.display = 'none';
-    // In POS mode, put the unknown code into the barcode field as fallback
+
     if (QR.mode === 'pos') {
+      // Not in inventory yet — put code in barcode field, let staff handle it
+      if (msgEl) { msgEl.className = 'qr-notfound'; msgEl.innerHTML = `❓ <strong>${esc(code)}</strong> not in inventory yet.<br><span style="font-size:12px">Add it to inventory first, then it'll scan instantly.</span>`; }
       const bci = $('bci');
-      if (bci) { bci.value = code; bci.focus(); }
-      setTimeout(() => qrClose(), 800);
+      if (bci) { bci.value = code; }
+      setTimeout(() => qrClose(), 1500);
+    } else if (QR.mode === 'inventory') {
+      // Not in inventory — pre-fill Add Product form with this barcode
+      if (msgEl) { msgEl.className = 'qr-scanning'; msgEl.innerHTML = `➕ New product — opening Add form…`; }
+      setTimeout(() => {
+        qrClose();
+        openPM(null);
+        setTimeout(() => {
+          const bcEl = $('mpbc');
+          if (bcEl) { bcEl.value = code; bcEl.dispatchEvent(new Event('input')); }
+        }, 200);
+      }, 700);
+    } else {
+      if (msgEl) { msgEl.className = 'qr-notfound'; msgEl.innerHTML = `❓ No product found for: <code>${esc(code)}</code>`; }
+      setTimeout(() => qrClose(), 1000);
     }
   }
 }
@@ -19086,7 +19101,7 @@ Rules:
 
   try {
     // Gemini Vision API call — multimodal with image
-    const models  = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
+    const models  = ['gemini-1.5-flash', 'gemini-2.0-flash-exp', 'gemini-2.0-flash', 'gemini-1.5-flash-latest'];
     let result    = null;
     let lastErr   = null;
 
@@ -19118,11 +19133,24 @@ Rules:
       }
       const data = await res.json();
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      console.log('[SI] Gemini raw response:', JSON.stringify(data?.candidates?.[0]));
+      if (!text) {
+        // Check for safety block or empty response
+        const finishReason = data?.candidates?.[0]?.finishReason;
+        if (finishReason && finishReason !== 'STOP') {
+          lastErr = new Error(`Blocked by safety filter (${finishReason}). Try a clearer photo.`);
+          continue;
+        }
+      }
       result = text;
       break;
     }
 
-    if (!result) throw lastErr || new Error('All models failed.');
+    if (!result) {
+      const errMsg = lastErr?.message || 'All models failed.';
+      console.error('[SI] All models failed. Last error:', errMsg);
+      throw new Error('API error: ' + errMsg + '. Check your Gemini key supports vision/multimodal.');
+    }
 
     // Parse JSON from response — robust extraction
     let parsed;
@@ -19137,7 +19165,9 @@ Rules:
     } catch(e) {
       // Last resort: ask Gemini again with an even stricter prompt
       console.warn('[SI] JSON parse failed, raw result:', result);
-      throw new Error('AI returned unreadable response. Please retake the photo and try again.');
+      const rawPreview = result ? result.slice(0,120) : '(empty)';
+      console.warn('[SI] JSON parse failed. Raw:', result);
+      throw new Error(`AI response wasn't valid JSON. Raw: "${rawPreview}". Try a clearer photo.`);
     }
 
     // Auto-fill the form
