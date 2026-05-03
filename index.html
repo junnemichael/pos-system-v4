@@ -14448,9 +14448,33 @@ document.addEventListener('keydown', function kbGlobal(e) {
 function scanItem(){
   const q=$('bci').value.trim();if(!q)return;
   const p=findP(q);
-  if(!p)showMsg('scmsg','❌ Not found.','alr');
-  else addC(p.bc);
-  $('bci').value='';$('bci').focus();
+  if(!p){
+    // Check if it looks like a barcode (digits only, 6-14 chars) → lookup name
+    const looksLikeBarcode = /^\d{6,14}$/.test(q);
+    if(looksLikeBarcode && navigator.onLine){
+      showMsg('scmsg','🔍 Barcode not in inventory. Looking up product name…','alb');
+      $('bci').value='';
+      fetch(`https://world.openfoodfacts.org/api/v0/product/${q}.json`,{signal:AbortSignal.timeout(5000)})
+        .then(r=>r.json()).then(d=>{
+          const nm = d.status===1&&d.product ? (d.product.product_name_en||d.product.product_name||d.product.brands||'') : '';
+          openPM(null);
+          setTimeout(()=>{
+            const bcEl=$('mpbc'); const nmEl=$('mpn');
+            if(bcEl) bcEl.value=q;
+            if(nmEl&&nm){ nmEl.value=nm; nmEl.style.background='var(--gnb)'; setTimeout(()=>{nmEl.style.background='';},1800); }
+            showMsg('mpmsg', nm ? `✅ Found: "${nm}" — review and save.` : `Barcode ${q} not in database. Fill in details manually.`, nm?'alg':'alb');
+          },200);
+        }).catch(()=>{
+          showMsg('scmsg','❌ Not found. Add it to inventory first.','alr');
+        });
+    } else {
+      showMsg('scmsg','❌ Not found. Add product to inventory first.','alr');
+      $('bci').value='';$('bci').focus();
+    }
+  } else {
+    addC(p.bc);
+    $('bci').value='';$('bci').focus();
+  }
 }
 function chQ(i,d){
   const p=S.products.find(x=>x.bc===cart[i].bc);const nq=cart[i].qty+d;
@@ -18157,16 +18181,31 @@ function qrHandleResult(code) {
       if (bci) { bci.value = code; }
       setTimeout(() => qrClose(), 1500);
     } else if (QR.mode === 'inventory') {
-      // Not in inventory — pre-fill Add Product form with this barcode
-      if (msgEl) { msgEl.className = 'qr-scanning'; msgEl.innerHTML = `➕ New product — opening Add form…`; }
-      setTimeout(() => {
+      // Not in inventory — look up product name from Open Food Facts (free, no key)
+      if (msgEl) { msgEl.className = 'qr-scanning'; msgEl.innerHTML = `🔍 Looking up barcode <strong>${esc(code)}</strong>…`; }
+      setTimeout(async () => {
+        let productName = '';
+        try {
+          const r = await fetch(`https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(code)}.json`, { signal: AbortSignal.timeout(5000) });
+          const d = await r.json();
+          if (d.status === 1 && d.product) {
+            productName = d.product.product_name_en || d.product.product_name || d.product.brands || '';
+          }
+        } catch(e) { /* offline or not found — proceed without name */ }
         qrClose();
         openPM(null);
         setTimeout(() => {
           const bcEl = $('mpbc');
-          if (bcEl) { bcEl.value = code; bcEl.dispatchEvent(new Event('input')); }
+          const nmEl = $('mpn');
+          if (bcEl) bcEl.value = code;
+          if (nmEl && productName) {
+            nmEl.value = productName;
+            // Flash to show it was auto-filled
+            nmEl.style.background = 'var(--gnb)';
+            setTimeout(() => { nmEl.style.background = ''; }, 1800);
+          }
         }, 200);
-      }, 700);
+      }, 300);
     } else {
       if (msgEl) { msgEl.className = 'qr-notfound'; msgEl.innerHTML = `❓ No product found for: <code>${esc(code)}</code>`; }
       setTimeout(() => qrClose(), 1000);
@@ -19071,112 +19110,103 @@ async function siAnalyseImage() {
 
   if (!AI.key || !SI.imageB64) return;
 
-  // Build the categories list for AI context
-  const cats      = (S.categories || []).join(', ') || 'Beverages, Snacks, Canned Goods, Personal Care, Condiments, Instant Noodles, Rice, Frozen, Others';
-  const storeCtx  = S.settings?.storeName || "Kyrie's Sari-Sari Store";
+  const cats     = (S.categories || []).join(', ') || 'Beverages, Snacks, Canned Goods, Personal Care, Condiments, Instant Noodles, Rice, Frozen, Others';
+  const storeCtx = S.settings?.storeName || "Kyrie's Sari-Sari Store";
 
-  const prompt = `You are a product recognition AI for a Filipino sari-sari store called "${storeCtx}".
+  const prompt = `You are a product recognition AI for a Filipino sari-sari store.
+Identify the product in this image. Reply with ONLY a JSON object, nothing else.
+No markdown, no backticks, no explanation. Just the raw JSON starting with { and ending with }.
 
-Look at this product image and identify it. Respond ONLY with a valid JSON object — no explanation, no markdown, no backticks.
+{"name":"full product name brand and size","category":"one of: ${cats}","saleType":"regular or tingi","buyPrice":0.00,"sellPrice":0.00,"confidence":"high or medium or low","notes":"brief note"}
 
-Use these exact category options: ${cats}
+Use Philippine peso pricing. buyPrice=wholesale, sellPrice=retail sari-sari price.`;
 
-JSON format:
-{
-  "name": "full product name with brand and variant/size if visible",
-  "category": "one of the categories listed above",
-  "saleType": "regular or tingi",
-  "buyPrice": estimated wholesale price in Philippine pesos as a number,
-  "sellPrice": estimated retail/tingi price in Philippine pesos as a number,
-  "confidence": "high or medium or low",
-  "notes": "brief note about the product or any uncertainty"
-}
+  // v1beta supports vision on ALL free Gemini keys
+  // v1 stable does NOT support multimodal on free tier
+  const endpoints = [
+    { ver:'v1beta', model:'gemini-1.5-flash' },
+    { ver:'v1beta', model:'gemini-2.0-flash' },
+    { ver:'v1beta', model:'gemini-1.5-flash-latest' },
+    { ver:'v1beta', model:'gemini-2.0-flash-exp' },
+  ];
 
-Rules:
-- Use Philippine sari-sari store pricing context (prices in Philippine Peso ₱)
-- If you cannot identify the product clearly, still give your best guess with confidence "low"
-- buyPrice = typical wholesale/distributor price as a plain number (e.g. 12.50)
-- sellPrice = typical sari-sari retail price as a plain number (e.g. 15.00)
-- CRITICAL: Your ENTIRE response must be ONLY the raw JSON object. No markdown. No backticks. No explanation. No newlines before or after. Start with { and end with }`;
+  let result  = null;
+  let lastErr = null;
+  let usedModel = '';
 
-  try {
-    // Gemini Vision API call — multimodal with image
-    const models  = ['gemini-1.5-flash', 'gemini-2.0-flash-exp', 'gemini-2.0-flash', 'gemini-1.5-flash-latest'];
-    let result    = null;
-    let lastErr   = null;
+  for (const ep of endpoints) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${ep.model}:generateContent?key=${AI.key}`;
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            role: 'user',
+            parts: [
+              { inline_data: { mime_type: SI.imageMime, data: SI.imageB64 } },
+              { text: prompt }
+            ]
+          }],
+          generationConfig: { maxOutputTokens: 300, temperature: 0.1 },
+        }),
+      });
 
-    for (const model of models) {
-      const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${AI.key}`;
-      let res;
-      try {
-        res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              role: 'user',
-              parts: [
-                { inline_data: { mime_type: SI.imageMime, data: SI.imageB64 } },
-                { text: prompt }
-              ]
-            }],
-            generationConfig: { maxOutputTokens: 400, temperature: 0.2 },
-          }),
-        });
-      } catch(fe) { lastErr = fe; continue; }
-
-      if (res.status === 404) { lastErr = new Error('model_not_found'); continue; }
-      if (!res.ok) {
+      if (res.status === 404 || res.status === 400) {
         const e = await res.json().catch(()=>({}));
-        lastErr  = new Error(e?.error?.message || `HTTP ${res.status}`);
+        lastErr = new Error(e?.error?.message || `HTTP ${res.status}`);
+        console.warn(`[SI] ${ep.model} failed:`, lastErr.message);
         continue;
       }
-      const data = await res.json();
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      console.log('[SI] Gemini raw response:', JSON.stringify(data?.candidates?.[0]));
-      if (!text) {
-        // Check for safety block or empty response
-        const finishReason = data?.candidates?.[0]?.finishReason;
-        if (finishReason && finishReason !== 'STOP') {
-          lastErr = new Error(`Blocked by safety filter (${finishReason}). Try a clearer photo.`);
-          continue;
-        }
+      if (res.status === 403 || res.status === 401) throw new Error('invalid_key');
+      if (!res.ok) {
+        const e = await res.json().catch(()=>({}));
+        lastErr = new Error(e?.error?.message || `HTTP ${res.status}`);
+        continue;
       }
-      result = text;
-      break;
+
+      const data = await res.json();
+      console.log(`[SI] ${ep.model} response:`, JSON.stringify(data?.candidates?.[0]));
+
+      const finishReason = data?.candidates?.[0]?.finishReason;
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+      if (!text && finishReason && finishReason !== 'STOP') {
+        lastErr = new Error(`Image blocked (${finishReason}). Try better lighting or a clearer photo.`);
+        continue;
+      }
+
+      if (text) { result = text; usedModel = ep.model; break; }
+
+    } catch(fe) {
+      if (fe.message === 'invalid_key') throw fe;
+      lastErr = fe;
+      continue;
     }
-
-    if (!result) {
-      const errMsg = lastErr?.message || 'All models failed.';
-      console.error('[SI] All models failed. Last error:', errMsg);
-      throw new Error('API error: ' + errMsg + '. Check your Gemini key supports vision/multimodal.');
-    }
-
-    // Parse JSON from response — robust extraction
-    let parsed;
-    try {
-      // Strip any markdown fences, find outermost { }
-      const stripped = result.replace(/```json|```/gi, '');
-      const start = stripped.indexOf('{');
-      const end   = stripped.lastIndexOf('}');
-      if (start === -1 || end === -1) throw new Error('no_json');
-      const jsonStr = stripped.slice(start, end + 1);
-      parsed = JSON.parse(jsonStr);
-    } catch(e) {
-      // Last resort: ask Gemini again with an even stricter prompt
-      console.warn('[SI] JSON parse failed, raw result:', result);
-      const rawPreview = result ? result.slice(0,120) : '(empty)';
-      console.warn('[SI] JSON parse failed. Raw:', result);
-      throw new Error(`AI response wasn't valid JSON. Raw: "${rawPreview}". Try a clearer photo.`);
-    }
-
-    // Auto-fill the form
-    siAutoFill(parsed, statusEl, detailEl);
-
-  } catch(err) {
-    if (statusEl) statusEl.innerHTML = `<span style="color:var(--rd)">⚠️ AI couldn't analyse the photo.</span>`;
-    if (detailEl) detailEl.innerHTML = `${err.message}<br><span style="color:var(--tx3)">You can still fill in the form manually below.</span>`;
   }
+
+  if (!result) {
+    const msg = lastErr?.message || 'No response from Gemini.';
+    console.error('[SI] All endpoints failed:', msg);
+    throw new Error(msg.includes('invalid_key') ? '🔑 Invalid API key.' : `Could not reach Gemini API: ${msg}`);
+  }
+
+  console.log(`[SI] Got result from ${usedModel}:`, result);
+
+  // Robust JSON extraction
+  let parsed;
+  try {
+    const stripped = result.replace(/```json|```/gi, '').trim();
+    const start    = stripped.indexOf('{');
+    const end      = stripped.lastIndexOf('}');
+    if (start === -1 || end === -1) throw new Error('no braces');
+    parsed = JSON.parse(stripped.slice(start, end + 1));
+  } catch(e) {
+    console.warn('[SI] JSON parse failed. Raw was:', result);
+    throw new Error(`Gemini responded but not as JSON. Raw: "${result.slice(0,100)}". Try a clearer, well-lit photo.`);
+  }
+
+  siAutoFill(parsed, statusEl, detailEl);
 }
 
 // ── AUTO-FILL PRODUCT FORM ────────────────────────────────────────────
