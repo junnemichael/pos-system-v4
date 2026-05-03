@@ -286,8 +286,8 @@ input,select{min-height:40px}
   .met{padding:12px}
   .mv{font-size:20px}
   /* Modal — bottom sheet on mobile */
-  .mo{padding:18px;margin:0;max-width:none!important;width:100%;border-radius:16px 16px 0 0}
-  .ov{padding:0;align-items:flex-end}
+  .mo{padding:16px;margin:0;max-width:none!important;width:100%;border-radius:16px 16px 0 0;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .ov{padding:0;align-items:flex-end;overflow-y:auto}
   /* Tables */
   .tbl{font-size:12px}
   th,td{padding:8px 10px}
@@ -18080,7 +18080,7 @@ function qrTick() {
   catch(e) { QR.ticker = requestAnimationFrame(qrTick); return; }
 
   const found = jsQR(imageData.data, imageData.width, imageData.height, {
-    inversionAttempts: 'dontInvert',
+    inversionAttempts: 'attemptBoth',
   });
 
   if (found && found.data && found.data !== QR.lastCode) {
@@ -18095,7 +18095,7 @@ function qrTick() {
 function qrHandleResult(code) {
   if (!code) return;
   QR.cooldown = true;
-  setTimeout(() => { QR.cooldown = false; }, 1200);
+  setTimeout(() => { QR.cooldown = false; }, 300);
 
   const msgEl  = $('qr-result-msg');
   const prevEl = $('qr-product-preview');
@@ -19078,11 +19078,11 @@ JSON format:
 }
 
 Rules:
-- Use Philippine sari-sari store pricing context
+- Use Philippine sari-sari store pricing context (prices in Philippine Peso ₱)
 - If you cannot identify the product clearly, still give your best guess with confidence "low"
-- buyPrice should be the typical wholesale/distributor price
-- sellPrice should be the typical sari-sari retail price
-- Respond with ONLY the JSON object, nothing else`;
+- buyPrice = typical wholesale/distributor price as a plain number (e.g. 12.50)
+- sellPrice = typical sari-sari retail price as a plain number (e.g. 15.00)
+- CRITICAL: Your ENTIRE response must be ONLY the raw JSON object. No markdown. No backticks. No explanation. No newlines before or after. Start with { and end with }`;
 
   try {
     // Gemini Vision API call — multimodal with image
@@ -19124,15 +19124,20 @@ Rules:
 
     if (!result) throw lastErr || new Error('All models failed.');
 
-    // Parse JSON from response
-    const cleaned = result.replace(/```json|```/gi, '').trim();
+    // Parse JSON from response — robust extraction
     let parsed;
-    try { parsed = JSON.parse(cleaned); }
-    catch(e) {
-      // Try to extract JSON from response
-      const match = cleaned.match(/\{[\s\S]*\}/);
-      if (match) { parsed = JSON.parse(match[0]); }
-      else throw new Error('Could not parse AI response as JSON.');
+    try {
+      // Strip any markdown fences, find outermost { }
+      const stripped = result.replace(/```json|```/gi, '');
+      const start = stripped.indexOf('{');
+      const end   = stripped.lastIndexOf('}');
+      if (start === -1 || end === -1) throw new Error('no_json');
+      const jsonStr = stripped.slice(start, end + 1);
+      parsed = JSON.parse(jsonStr);
+    } catch(e) {
+      // Last resort: ask Gemini again with an even stricter prompt
+      console.warn('[SI] JSON parse failed, raw result:', result);
+      throw new Error('AI returned unreadable response. Please retake the photo and try again.');
     }
 
     // Auto-fill the form
