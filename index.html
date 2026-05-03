@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- Kyrie's Store Point of Sale System
-     Version: KPOS.V6.1.C
+     Version: KPOS.V6.1.D
      Storage: IndexedDB (scalable, offline-first)
      Architecture: Single-file, zero dependencies
 -->
@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="Kyrie's POS"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#15803d"/>
-<title>Kyrie's Store POS — KPOS.V6.1.C</title>
+<title>Kyrie's Store POS — KPOS.V6.1.D</title>
 <style>
 :root{--bg:#f4f4f0;--sf:#fff;--sf2:#f0efe9;--bd:#e2e1da;--tx:#1c1c1a;--tx2:#6a6a60;--tx3:#a0a090;--gn:#15803d;--gnb:#dcfce7;--gnt:#14532d;--gnl:#bbf7d0;--am:#b45309;--amb:#fef3c7;--amt:#78350f;--rd:#b91c1c;--rdb:#fee2e2;--rdt:#7f1d1d;--bl:#1d4ed8;--blb:#dbeafe;--blt:#1e3a8a;--pu:#7c3aed;--pub:#ede9fe;--put:#4c1d95;--or:#c2410c;--orb:#ffedd5;--ort:#7c2d12;--r:10px;--rs:6px;--rl:14px}
 [data-theme=dark]{--bg:#111;--sf:#1c1c1a;--sf2:#252523;--bd:#333;--tx:#f0f0ec;--tx2:#a0a090;--tx3:#555;--gn:#22c55e;--gnb:#052e16;--gnt:#86efac;--gnl:#166534;--am:#fbbf24;--amb:#451a03;--amt:#fcd34d;--rd:#f87171;--rdb:#450a0a;--rdt:#fca5a5;--bl:#60a5fa;--blb:#1e3a5f;--blt:#93c5fd;--pu:#a78bfa;--pub:#2e1065;--put:#c4b5fd;--or:#fb923c;--orb:#431407;--ort:#fdba74}
@@ -10602,7 +10602,7 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
     <button class="lbtn" onclick="doLogin()">Sign In</button>
     <div id="le" style="color:var(--rd);font-size:13px;text-align:center;margin-top:10px;min-height:18px"></div>
     <div style="text-align:center;margin-top:18px;font-size:11px;color:#9ca3af;letter-spacing:.03em">
-      Kyrie's Store POS &nbsp;·&nbsp; KPOS.V6.1.C &nbsp;·&nbsp; Powered by IndexedDB
+      Kyrie's Store POS &nbsp;·&nbsp; KPOS.V6.1.D &nbsp;·&nbsp; Powered by IndexedDB
     </div>
   </div>
 </div>
@@ -10704,7 +10704,7 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
         </div>
         <div class="card">
           <div class="ctit">Scan barcode</div>
-          <div class="sr"><input type="text" id="bci" placeholder="Scan or type name/barcode…"/><button class="btn bp" onclick="scanItem()">Add</button><button class="qr-scan-btn" onclick="qrOpen('pos')" title="Use camera to scan QR or barcode">📷 Camera</button></div>
+          <div class="sr"><input type="text" id="bci" placeholder="Scan or type name/barcode…"/><button class="btn bp" onclick="scanItem()">Add</button><button class="qr-scan-btn" onclick="qrOpen('pos')" title="Use camera to scan QR or barcode">📷 Camera</button><button class="qr-scan-btn" onclick="ssOpen()" title="Snap & Sell — photo multiple products at once" style="background:var(--pub);color:var(--put);border-color:var(--pu)">⚡ Snap &amp; Sell</button></div>
           <div id="scmsg"></div>
         </div>
       </div>
@@ -11459,8 +11459,96 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
 
     <!-- Version footer — always visible -->
     <div style="text-align:center;padding:16px 0 4px;font-size:11px;color:var(--tx3);letter-spacing:.04em">
-      Kyrie's Sari-Sari Store POS &nbsp;·&nbsp; <strong style="color:var(--gn)">KPOS.V6.1.C</strong> &nbsp;·&nbsp; Local-first · No cloud required · Phase 6A: QR &nbsp;·&nbsp; Phase 6B: AI Assistant &nbsp;·&nbsp; Phase 6C: Smart Inventory
+      Kyrie's Sari-Sari Store POS &nbsp;·&nbsp; <strong style="color:var(--gn)">KPOS.V6.1.D</strong> &nbsp;·&nbsp; Local-first · No cloud required · Phase 6A: QR &nbsp;·&nbsp; Phase 6B: AI Assistant &nbsp;·&nbsp; Phase 6C: Smart Inventory &nbsp;·&nbsp; Phase 6D: Snap &amp; Sell
     </div>
+  </div>
+</div>
+<!-- ═══════════════════════════════════════════════════════════
+     PHASE 6D — SNAP & SELL MODAL
+     Take one photo of counter products → AI identifies all of them
+     → previews matches → one tap to add all to cart
+     ═══════════════════════════════════════════════════════════ -->
+<div class="ov" id="msnapsell">
+  <div class="mo" style="max-width:480px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <div>
+        <h2 style="margin:0">⚡ Snap &amp; Sell</h2>
+        <p style="margin:2px 0 0;font-size:12px;color:var(--tx2)">Photo your counter products — AI rings them all up instantly</p>
+      </div>
+      <button class="btn bs" onclick="ssClose()">✕</button>
+    </div>
+
+    <!-- Step 1: Camera -->
+    <div id="ss-step-cam">
+      <div id="ss-cam-wrap" style="position:relative;width:100%;height:260px;background:#000;border-radius:var(--rs);overflow:hidden;margin:10px 0">
+        <video id="ss-video" playsinline autoplay muted style="width:100%;height:100%;object-fit:cover;display:block"></video>
+        <canvas id="ss-canvas" style="display:none"></canvas>
+        <!-- Corner guides -->
+        <div style="position:absolute;inset:0;pointer-events:none">
+          <div style="position:absolute;top:10px;left:10px;width:28px;height:28px;border-top:3px solid #fff;border-left:3px solid #fff;border-radius:4px 0 0 0;opacity:.7"></div>
+          <div style="position:absolute;top:10px;right:10px;width:28px;height:28px;border-top:3px solid #fff;border-right:3px solid #fff;border-radius:0 4px 0 0;opacity:.7"></div>
+          <div style="position:absolute;bottom:10px;left:10px;width:28px;height:28px;border-bottom:3px solid #fff;border-left:3px solid #fff;border-radius:0 0 0 4px;opacity:.7"></div>
+          <div style="position:absolute;bottom:10px;right:10px;width:28px;height:28px;border-bottom:3px solid #fff;border-right:3px solid #fff;border-radius:0 0 4px 0;opacity:.7"></div>
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+            <div style="color:rgba(255,255,255,.6);font-size:12px;background:rgba(0,0,0,.4);padding:4px 10px;border-radius:10px">Place products in view</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-bottom:4px">
+        <button class="btn" onclick="ssClose()">Cancel</button>
+        <button onclick="ssCapture()" style="background:var(--pu);color:#fff;border:none;border-radius:50px;padding:12px 32px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 2px 12px rgba(0,0,0,.25)">📸 Snap!</button>
+      </div>
+      <div style="text-align:center;font-size:11px;color:var(--tx3);margin-top:4px">Tip: Good lighting = better AI accuracy</div>
+    </div>
+
+    <!-- Step 2: Analysing -->
+    <div id="ss-step-analyse" style="display:none;padding:20px 0;text-align:center">
+      <div style="font-size:36px;margin-bottom:10px">🤖</div>
+      <div style="font-weight:700;font-size:15px;margin-bottom:6px">AI is scanning your products…</div>
+      <div id="ss-analyse-status" style="font-size:13px;color:var(--tx2)">Identifying items in photo…</div>
+      <div style="margin-top:14px;display:flex;justify-content:center;gap:5px" id="ss-dots">
+        <span style="width:8px;height:8px;background:var(--pu);border-radius:50%;animation:aiDot 1.2s ease-in-out infinite"></span>
+        <span style="width:8px;height:8px;background:var(--pu);border-radius:50%;animation:aiDot 1.2s ease-in-out .2s infinite"></span>
+        <span style="width:8px;height:8px;background:var(--pu);border-radius:50%;animation:aiDot 1.2s ease-in-out .4s infinite"></span>
+      </div>
+    </div>
+
+    <!-- Step 3: Results -->
+    <div id="ss-step-results" style="display:none">
+      <div style="display:flex;gap:8px;align-items:center;margin:8px 0 10px">
+        <img id="ss-preview-img" style="width:72px;height:72px;object-fit:cover;border-radius:var(--rs);border:1px solid var(--bd);flex-shrink:0" src=""/>
+        <div style="flex:1">
+          <div id="ss-result-summary" style="font-weight:700;font-size:13px"></div>
+          <div id="ss-result-sub" style="font-size:12px;color:var(--tx2);margin-top:2px"></div>
+        </div>
+        <button class="btn bs" onclick="ssRetake()" style="font-size:12px;flex-shrink:0">↺ Retake</button>
+      </div>
+
+      <!-- Product matches list -->
+      <div id="ss-matches-list" style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;margin-bottom:10px;-webkit-overflow-scrolling:touch"></div>
+
+      <!-- Not matched items -->
+      <div id="ss-unmatched-wrap" style="display:none;margin-bottom:10px">
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:4px">⚠️ Not in inventory:</div>
+        <div id="ss-unmatched-list" style="font-size:12px;color:var(--tx3)"></div>
+      </div>
+
+      <div class="mbt">
+        <button class="btn" onclick="ssClose()">Cancel</button>
+        <button class="btn bs" onclick="ssRetake()">↺ Retake</button>
+        <button class="btn bp" id="ss-add-btn" onclick="ssAddAll()">✅ Add to Cart</button>
+      </div>
+    </div>
+
+    <!-- Error state -->
+    <div id="ss-step-error" style="display:none;padding:16px 0">
+      <div class="al alr" id="ss-error-msg" style="margin-bottom:12px"></div>
+      <div class="mbt" style="justify-content:center">
+        <button class="btn" onclick="ssClose()">Cancel</button>
+        <button class="btn bp" onclick="ssRetake()">↺ Try Again</button>
+      </div>
+    </div>
+
   </div>
 </div>
 <!-- ═══════════════════════════════════════════════════════════
@@ -18363,7 +18451,7 @@ document.addEventListener('keydown', (e) => {
 console.log('[Phase 6A] QR Code Support loaded ✅');
 
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║  PHASE 6B — AI STORE ASSISTANT                        KPOS.V6.1.C ║
+// ║  PHASE 6B — AI STORE ASSISTANT                        KPOS.V6.1.D ║
 // ║  Primary:  Google Gemini 1.5 Flash (FREE — no credit card)      ║
 // ║  Fallback: Groq Llama3 (FREE — generous limits)                 ║
 // ║  Offline-first: gracefully disabled when no internet.           ║
@@ -18930,7 +19018,7 @@ window.addEventListener('offline', () => { aiCheckStatus(); aiCheckOnline(); });
 console.log('[Phase 6B] AI Store Assistant loaded ✅ (Gemini Flash / Groq — free APIs)');
 
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║  PHASE 6C — SMART INVENTORY (AI Camera)              KPOS.V6.1.C ║
+// ║  PHASE 6C — SMART INVENTORY (AI Camera)              KPOS.V6.1.D ║
 // ║  Snap a photo of a product → Gemini Vision identifies it        ║
 // ║  → auto-fills Name, Category, Buy/Sell price in Add Product     ║
 // ║  Uses same free Gemini API key as Phase 6B AI Assistant         ║
@@ -19282,6 +19370,378 @@ window.addEventListener('online',  () => { if ($('sizone')?.style.display !== 'n
 window.addEventListener('offline', () => { if ($('sizone')?.style.display !== 'none') siResetZone(false); });
 
 console.log('[Phase 6C] Smart Inventory (AI Camera) loaded ✅');
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  PHASE 6D — SNAP & SELL                              KPOS.V6.1.D ║
+// ║  Photo counter products → Gemini Vision identifies all of them  ║
+// ║  → matches to inventory → one tap adds all to cart              ║
+// ║  Offline-first: button disabled gracefully when no internet     ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+const SS = {
+  stream:   null,
+  imageB64: null,
+  imageMime:'image/jpeg',
+  matches:  [],   // [{product, qty, aiName, confidence}]
+};
+
+// ── OPEN SNAP & SELL ─────────────────────────────────────────────────
+async function ssOpen() {
+  if (!navigator.onLine) {
+    showMsg('scmsg', '📡 Snap & Sell needs internet for AI. Use manual scan when offline.', 'ala');
+    return;
+  }
+  if (!AI.key) {
+    showMsg('scmsg', '🔑 Connect a free Gemini key first. Settings → AI Assistant.', 'ala');
+    return;
+  }
+
+  // Reset state
+  SS.imageB64 = null;
+  SS.matches  = [];
+
+  ssShowStep('cam');
+  openM('msnapsell');
+
+  // Start camera
+  await ssStartCamera();
+}
+
+// ── START CAMERA ──────────────────────────────────────────────────────
+async function ssStartCamera() {
+  if (SS.stream) { try { SS.stream.getTracks().forEach(t=>t.stop()); } catch(e){} SS.stream=null; }
+
+  try {
+    SS.stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720} },
+      audio: false,
+    });
+    const video = $('ss-video');
+    if (!video) return;
+    video.srcObject = SS.stream;
+    video.setAttribute('playsinline', true);
+    video.muted = true;
+    await new Promise((res, rej) => {
+      video.onloadedmetadata = () => video.play().then(res).catch(rej);
+      video.onerror = rej;
+      setTimeout(res, 2500);
+    });
+  } catch(err) {
+    ssShowStep('error');
+    const denied = err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError';
+    const errEl = $('ss-error-msg');
+    if (errEl) errEl.textContent = denied
+      ? '🚫 Camera permission denied. Allow camera in browser settings and try again.'
+      : '📷 No camera found on this device.';
+  }
+}
+
+// ── CAPTURE PHOTO ─────────────────────────────────────────────────────
+function ssCapture() {
+  const video  = $('ss-video');
+  const canvas = $('ss-canvas');
+  if (!video || !canvas) return;
+
+  if (!video.videoWidth || !video.videoHeight || video.readyState < 2) {
+    alert('Camera is still loading — wait a moment and try again.');
+    return;
+  }
+
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+  SS.imageB64   = dataUrl.split(',')[1];
+  SS.imageMime  = 'image/jpeg';
+
+  // Show preview image
+  const prevImg = $('ss-preview-img');
+  if (prevImg) prevImg.src = dataUrl;
+
+  // Stop camera
+  if (SS.stream) { try { SS.stream.getTracks().forEach(t=>t.stop()); } catch(e){} SS.stream=null; }
+
+  ssShowStep('analyse');
+  ssAnalyse();
+}
+
+// ── ANALYSE WITH GEMINI VISION ────────────────────────────────────────
+async function ssAnalyse() {
+  const statusEl = $('ss-analyse-status');
+
+  // Build inventory context for AI — product names it can match against
+  const prods = softDelete.active(S.products);
+  const prodList = prods.map(p => `"${p.nm}" (${p.cat}, ₱${p.sell}, stock:${p.stock})`).join('\n');
+
+  if (statusEl) statusEl.textContent = 'Sending photo to AI…';
+
+  const prompt = `You are a POS AI for a Filipino sari-sari store. Look at this photo of products on a store counter.
+
+STORE INVENTORY:
+${prodList || 'No products yet in inventory.'}
+
+Identify ALL products visible in the photo. For each product found, try to match it to the inventory list above.
+
+Respond ONLY with a raw JSON array. No markdown, no backticks, no explanation. Start with [ and end with ].
+
+Format:
+[
+  {"aiName":"product name you see","matchedName":"exact name from inventory or empty string if no match","qty":1,"confidence":"high|medium|low"},
+  ...
+]
+
+Rules:
+- List every distinct product you can see
+- qty = how many of that product you can count (default 1)
+- matchedName must be EXACTLY as written in the inventory list, or empty "" if not found
+- If inventory is empty, still list what you see with matchedName as ""
+- confidence: high=clearly visible label, medium=partially visible, low=guessing`;
+
+  try {
+    if (statusEl) statusEl.textContent = 'AI is identifying products…';
+
+    const endpoints = [
+      { ver:'v1beta', model:'gemini-1.5-flash' },
+      { ver:'v1beta', model:'gemini-2.0-flash' },
+      { ver:'v1beta', model:'gemini-2.0-flash-exp' },
+      { ver:'v1beta', model:'gemini-1.5-flash-latest' },
+    ];
+
+    let result = null, lastErr = null, usedModel = '';
+
+    for (const ep of endpoints) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${ep.model}:generateContent?key=${AI.key}`;
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              role: 'user',
+              parts: [
+                { inline_data: { mime_type: SS.imageMime, data: SS.imageB64 } },
+                { text: prompt }
+              ]
+            }],
+            generationConfig: { maxOutputTokens: 600, temperature: 0.1 },
+          }),
+        });
+        if (res.status === 404 || res.status === 400) { const e=await res.json().catch(()=>{}); lastErr=new Error(e?.error?.message||`HTTP ${res.status}`); continue; }
+        if (res.status === 403 || res.status === 401) throw new Error('invalid_key');
+        if (!res.ok) { const e=await res.json().catch(()=>{}); lastErr=new Error(e?.error?.message||`HTTP ${res.status}`); continue; }
+
+        const data  = await res.json();
+        const text  = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const finish= data?.candidates?.[0]?.finishReason;
+        console.log(`[SS] ${ep.model}:`, text);
+
+        if (!text && finish && finish !== 'STOP') { lastErr=new Error(`Blocked: ${finish}`); continue; }
+        if (text) { result=text; usedModel=ep.model; break; }
+      } catch(fe) {
+        if (fe.message==='invalid_key') throw fe;
+        lastErr=fe; continue;
+      }
+    }
+
+    if (!result) throw lastErr || new Error('No response from Gemini.');
+
+    // Parse JSON array
+    const stripped = result.replace(/```json|```/gi,'').trim();
+    const start    = stripped.indexOf('[');
+    const end      = stripped.lastIndexOf(']');
+    if (start===-1||end===-1) throw new Error(`AI didn't return a list. Got: "${stripped.slice(0,80)}"`);
+
+    const items = JSON.parse(stripped.slice(start, end+1));
+    if (!Array.isArray(items) || items.length===0) throw new Error('AI found no products in the photo. Try better lighting or move closer.');
+
+    if (statusEl) statusEl.textContent = `Found ${items.length} item(s) — matching to inventory…`;
+    await new Promise(r=>setTimeout(r,300));
+
+    // Match AI results to inventory
+    ssProcessMatches(items, prods);
+
+  } catch(err) {
+    console.error('[SS] Error:', err);
+    ssShowStep('error');
+    const errEl = $('ss-error-msg');
+    if (errEl) errEl.innerHTML = `⚠️ ${err.message === 'invalid_key' ? '🔑 Invalid Gemini API key.' : err.message}<br><small style="color:var(--tx3)">Try better lighting, move closer to products, or add products to inventory first.</small>`;
+  }
+}
+
+// ── MATCH AI RESULTS TO INVENTORY ────────────────────────────────────
+function ssProcessMatches(items, prods) {
+  SS.matches = [];
+  const unmatched = [];
+
+  items.forEach(item => {
+    let prod = null;
+
+    // Try exact match first
+    if (item.matchedName) {
+      prod = prods.find(p => p.nm.toLowerCase() === item.matchedName.toLowerCase());
+    }
+
+    // Fuzzy match by AI name if exact failed
+    if (!prod && item.aiName) {
+      const ai = item.aiName.toLowerCase();
+      prod = prods.find(p => {
+        const nm = p.nm.toLowerCase();
+        return nm.includes(ai.split(' ')[0]) || ai.includes(nm.split(' ')[0]);
+      });
+    }
+
+    if (prod) {
+      // Check if already in matches (consolidate duplicates)
+      const existing = SS.matches.find(m => m.product.bc === prod.bc);
+      if (existing) { existing.qty += (parseInt(item.qty)||1); }
+      else { SS.matches.push({ product: prod, qty: parseInt(item.qty)||1, aiName: item.aiName, confidence: item.confidence||'medium' }); }
+    } else {
+      unmatched.push(item.aiName);
+    }
+  });
+
+  ssShowResults(unmatched);
+}
+
+// ── SHOW RESULTS ──────────────────────────────────────────────────────
+function ssShowResults(unmatched) {
+  const listEl    = $('ss-matches-list');
+  const summaryEl = $('ss-result-summary');
+  const subEl     = $('ss-result-sub');
+  const addBtn    = $('ss-add-btn');
+  const unmWrap   = $('ss-unmatched-wrap');
+  const unmList   = $('ss-unmatched-list');
+
+  if (summaryEl) summaryEl.textContent = SS.matches.length
+    ? `✅ ${SS.matches.length} product${SS.matches.length>1?'s':''} identified`
+    : '❓ No inventory matches found';
+
+  if (subEl) subEl.textContent = unmatched.length
+    ? `${unmatched.length} item(s) not in inventory`
+    : 'All products matched to your inventory';
+
+  // Build match rows
+  if (listEl) {
+    listEl.innerHTML = '';
+    SS.matches.forEach((m, i) => {
+      const confColor = m.confidence==='high'?'var(--gn)':m.confidence==='medium'?'var(--am)':'var(--rd)';
+      const stock = m.product.stock;
+      const stockColor = stock<=0?'var(--rd)':stock<=m.product.lowAt?'var(--am)':'var(--tx2)';
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:8px;align-items:center;background:var(--sf2);border:1px solid var(--bd);border-radius:var(--rs);padding:8px 10px';
+      row.innerHTML = `
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.product.nm)}</div>
+          <div style="font-size:11px;color:var(--tx2);display:flex;gap:8px;flex-wrap:wrap;margin-top:2px">
+            <span style="color:${confColor};font-weight:700">${m.confidence} confidence</span>
+            <span style="color:var(--gn)">₱${m.product.sell.toFixed(2)}</span>
+            <span style="color:${stockColor}">Stock: ${stock}</span>
+          </div>
+          ${m.aiName !== m.product.nm ? `<div style="font-size:10px;color:var(--tx3)">AI saw: "${esc(m.aiName)}"</div>` : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+          <button onclick="ssQtyChange(${i},-1)" style="width:26px;height:26px;border:1px solid var(--bd);background:var(--sf);border-radius:4px;cursor:pointer;font-size:14px;font-weight:700;font-family:inherit">−</button>
+          <span id="ss-qty-${i}" style="min-width:24px;text-align:center;font-weight:700;font-size:14px">${m.qty}</span>
+          <button onclick="ssQtyChange(${i},1)" style="width:26px;height:26px;border:1px solid var(--bd);background:var(--sf);border-radius:4px;cursor:pointer;font-size:14px;font-weight:700;font-family:inherit">+</button>
+        </div>
+        <button onclick="ssRemoveMatch(${i})" style="width:26px;height:26px;border:1px solid var(--rdb);background:var(--rdb);color:var(--rdt);border-radius:4px;cursor:pointer;font-size:12px;font-family:inherit;flex-shrink:0">✕</button>`;
+      listEl.appendChild(row);
+    });
+  }
+
+  // Unmatched items
+  if (unmWrap) unmWrap.style.display = unmatched.length ? 'block' : 'none';
+  if (unmList) unmList.innerHTML = unmatched.map(n=>`• ${esc(n)}`).join('<br>');
+
+  // Disable add button if no matches
+  if (addBtn) {
+    addBtn.disabled = SS.matches.length === 0;
+    addBtn.textContent = SS.matches.length
+      ? `✅ Add ${SS.matches.reduce((s,m)=>s+m.qty,0)} item(s) to Cart`
+      : '❌ Nothing to add';
+  }
+
+  ssShowStep('results');
+}
+
+// ── QTY CONTROLS ──────────────────────────────────────────────────────
+function ssQtyChange(i, delta) {
+  if (!SS.matches[i]) return;
+  SS.matches[i].qty = Math.max(1, (SS.matches[i].qty || 1) + delta);
+  const el = $(`ss-qty-${i}`);
+  if (el) el.textContent = SS.matches[i].qty;
+  // Update button text
+  const addBtn = $('ss-add-btn');
+  if (addBtn) addBtn.textContent = `✅ Add ${SS.matches.reduce((s,m)=>s+m.qty,0)} item(s) to Cart`;
+}
+
+function ssRemoveMatch(i) {
+  SS.matches.splice(i, 1);
+  ssShowResults([]);
+}
+
+// ── ADD ALL TO CART ───────────────────────────────────────────────────
+function ssAddAll() {
+  if (!SS.matches.length) return;
+  let added = 0, skipped = 0;
+
+  SS.matches.forEach(m => {
+    const prod  = m.product;
+    const qty   = m.qty || 1;
+    if (prod.stock <= 0) { skipped++; return; }
+
+    const existing = cart.find(c => c.bc === prod.bc);
+    const newQty   = (existing ? existing.qty : 0) + qty;
+    const finalQty = Math.min(newQty, prod.stock); // cap at stock
+
+    if (existing) { existing.qty = finalQty; }
+    else { cart.push({ bc: prod.bc, qty: finalQty }); }
+    added++;
+  });
+
+  renderCart();
+  ssClose();
+
+  const msg = added > 0
+    ? `⚡ Added ${SS.matches.reduce((s,m)=>s+m.qty,0)} item(s) from Snap & Sell!${skipped?' ('+skipped+' out of stock skipped)':''}`
+    : '⚠️ All items were out of stock.';
+  showMsg('scmsg', msg, added > 0 ? 'alg' : 'ala');
+}
+
+// ── RETAKE ─────────────────────────────────────────────────────────────
+function ssRetake() {
+  SS.imageB64 = null;
+  SS.matches  = [];
+  ssShowStep('cam');
+  ssStartCamera();
+}
+
+// ── CLOSE ──────────────────────────────────────────────────────────────
+function ssClose() {
+  if (SS.stream) { try { SS.stream.getTracks().forEach(t=>t.stop()); } catch(e){} SS.stream=null; }
+  const video = $('ss-video');
+  if (video) { try { video.srcObject=null; } catch(e){} }
+  SS.imageB64 = null;
+  SS.matches  = [];
+  closeM('msnapsell');
+}
+
+// ── SHOW/HIDE STEPS ────────────────────────────────────────────────────
+function ssShowStep(step) {
+  ['cam','analyse','results','error'].forEach(s => {
+    const el = $(`ss-step-${s}`);
+    if (el) el.style.display = s===step ? 'block' : 'none';
+  });
+}
+
+// Close on overlay background click
+document.addEventListener('DOMContentLoaded', () => {
+  const ov = $('msnapsell');
+  if (ov) ov.addEventListener('click', e => { if (e.target===ov) ssClose(); });
+});
+
+console.log('[Phase 6D] Snap & Sell loaded ✅');
 </script>
 </body>
 </html>
