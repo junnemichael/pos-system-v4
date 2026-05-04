@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- Kyrie's Store Point of Sale System
-     Version: KPOS.V6.1.C
+     Version: KPOS.V6.1.C2
      Storage: IndexedDB (scalable, offline-first)
      Architecture: Single-file, zero dependencies
 -->
@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="Kyrie's POS"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#15803d"/>
-<title>Kyrie's Store POS — KPOS.V6.1.C</title>
+<title>Kyrie's Store POS — KPOS.V6.1.C2</title>
 <style>
 :root{--bg:#f4f4f0;--sf:#fff;--sf2:#f0efe9;--bd:#e2e1da;--tx:#1c1c1a;--tx2:#6a6a60;--tx3:#a0a090;--gn:#15803d;--gnb:#dcfce7;--gnt:#14532d;--gnl:#bbf7d0;--am:#b45309;--amb:#fef3c7;--amt:#78350f;--rd:#b91c1c;--rdb:#fee2e2;--rdt:#7f1d1d;--bl:#1d4ed8;--blb:#dbeafe;--blt:#1e3a8a;--pu:#7c3aed;--pub:#ede9fe;--put:#4c1d95;--or:#c2410c;--orb:#ffedd5;--ort:#7c2d12;--r:10px;--rs:6px;--rl:14px}
 [data-theme=dark]{--bg:#111;--sf:#1c1c1a;--sf2:#252523;--bd:#333;--tx:#f0f0ec;--tx2:#a0a090;--tx3:#555;--gn:#22c55e;--gnb:#052e16;--gnt:#86efac;--gnl:#166534;--am:#fbbf24;--amb:#451a03;--amt:#fcd34d;--rd:#f87171;--rdb:#450a0a;--rdt:#fca5a5;--bl:#60a5fa;--blb:#1e3a5f;--blt:#93c5fd;--pu:#a78bfa;--pub:#2e1065;--put:#c4b5fd;--or:#fb923c;--orb:#431407;--ort:#fdba74}
@@ -10602,7 +10602,7 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
     <button class="lbtn" onclick="doLogin()">Sign In</button>
     <div id="le" style="color:var(--rd);font-size:13px;text-align:center;margin-top:10px;min-height:18px"></div>
     <div style="text-align:center;margin-top:18px;font-size:11px;color:#9ca3af;letter-spacing:.03em">
-      Kyrie's Store POS &nbsp;·&nbsp; KPOS.V6.1.C &nbsp;·&nbsp; Powered by IndexedDB
+      Kyrie's Store POS &nbsp;·&nbsp; KPOS.V6.1.C2 &nbsp;·&nbsp; Powered by IndexedDB
     </div>
   </div>
 </div>
@@ -11459,7 +11459,7 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
 
     <!-- Version footer — always visible -->
     <div style="text-align:center;padding:16px 0 4px;font-size:11px;color:var(--tx3);letter-spacing:.04em">
-      Kyrie's Sari-Sari Store POS &nbsp;·&nbsp; <strong style="color:var(--gn)">KPOS.V6.1.C</strong> &nbsp;·&nbsp; Local-first · No cloud required · Phase 6A: QR &nbsp;·&nbsp; Phase 6B: AI Assistant &nbsp;·&nbsp; Phase 6C: Smart Inventory
+      Kyrie's Sari-Sari Store POS &nbsp;·&nbsp; <strong style="color:var(--gn)">KPOS.V6.1.C2</strong> &nbsp;·&nbsp; Local-first · No cloud required · Phase 6A: QR &nbsp;·&nbsp; Phase 6B: AI Assistant &nbsp;·&nbsp; Phase 6C: Smart Inventory
     </div>
   </div>
 </div>
@@ -13671,14 +13671,30 @@ const dataStore = {
   // Replaces all state at once (e.g. after JSON import).
   // Pushes a single bulk-replace sync event.
   bulkReplace(newState) {
-    const { _version, _app, _exported, _exportedBy, _store, ...storeData } = newState;
+    // Strip all export-meta keys — only keep real store data
+    const { _version, _phase, _app, _exported, _exportedBy, _exportedById,
+            _store, _deviceId, lastSyncTimestamp, syncQueueSnapshot,
+            syncStats, ...storeData } = newState;
     S = { ..._DEFAULT_STATE, ...storeData };
     S.invLog = S.invLog || [];
-    if (!S.users || !S.users.find(u => u.role === 'admin')) {
-      S.users = S.users || [];
-      S.users.unshift({ id: 'admin', nm: 'Junne (Owner)', un: 'admin', pw: btoa('admin123'), role: 'admin', created: new Date().toISOString() });
+    S.loginLog = S.loginLog || [];
+
+    // ── USERS: restore from backup, guarantee at least one admin ────
+    // Passwords in backup are already btoa-encoded — safe to restore as-is
+    if (!Array.isArray(S.users) || S.users.length === 0) {
+      S.users = [{ id:'admin', nm:'Junne (Owner)', un:'admin', pw:btoa('admin123'), role:'admin', created:new Date().toISOString() }];
+    } else if (!S.users.find(u => u.role === 'admin' && !u._deleted)) {
+      // Backup had users but no active admin — add default
+      S.users.unshift({ id:'admin', nm:'Junne (Owner)', un:'admin', pw:btoa('admin123'), role:'admin', created:new Date().toISOString() });
     }
+    // Sanitize: filter out any corrupt user records
+    S.users = S.users.filter(u => u && u.un && u.id);
+
     if (!S._syncMeta) S._syncMeta = { ..._DEFAULT_STATE._syncMeta };
+    // Keep this device's ID — don't overwrite with the source device's ID
+    S._syncMeta.deviceId = _DEFAULT_STATE._syncMeta?.deviceId ||
+      ('dev_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8));
+
     this._persist();
     syncQueue.push('settings', 'update', 'bulkReplace', { ts: new Date().toISOString(), source: 'import' });
   },
@@ -17039,6 +17055,7 @@ function previewImport(input){
       const prods=(data.products||[]).length,txns=(data.transactions||[]).length;
       const exps=(data.expenses||[]).length,gc=(data.gcashLog||[]).length;
       const invl=(data.invLog||[]).length,sqEvts=(data.syncQueueSnapshot||[]).length;
+      const usrs=(data.users||[]).filter(u=>u&&!u._deleted).length;
       const expDate=data._exported?new Date(data._exported).toLocaleString('en-PH'):'Unknown';
       const store=esc(data._store||data.settings?.storeName||'Unknown');
       const by=esc(data._exportedBy||'Unknown');
@@ -17058,6 +17075,7 @@ function previewImport(input){
           <span class="badge bgg">🛒 ${txns} txns</span>
           <span class="badge bgs">💰 ${exps} expenses</span>
           <span class="badge bgs">💳 ${gc} GCash</span>
+          <span class="badge bgb">👤 ${usrs} users</span>
           <span class="badge bgs">📒 ${invl} inv log</span>
           ${isV10?`<span class="badge bgb">🔄 ${sqEvts} sync events</span>`:''}
         </div>
@@ -17099,7 +17117,10 @@ function _showMergePreview(data){
   const incomingQEvts=(data.syncQueueSnapshot||[]).length;
   const localQIds=new Set(pendingSyncQueue.map(e=>e.id));
   const newQEvts=(data.syncQueueSnapshot||[]).filter(e=>!localQIds.has(e.id)).length;
-  const hasMergeWork=(newProds+conflictProds+newTxns+newExps+newGC+newReqs)>0;
+  let newUsers=0,skipUsers=0;
+  const localUserIds=new Set((S.users||[]).map(u=>u.id));
+  (data.users||[]).forEach(u=>{if(u&&u.id&&!localUserIds.has(u.id))newUsers++;else skipUsers++;});
+  const hasMergeWork=(newProds+conflictProds+newTxns+newExps+newGC+newReqs+newUsers)>0;
   mp.style.display='block';
   mp.innerHTML=`<div class="card" style="background:var(--sf2);border:1px solid var(--bd);padding:12px;margin-bottom:0">
     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--tx2);margin-bottom:8px">🔍 Merge Preview (dry-run — no changes yet)</div>
@@ -17109,6 +17130,7 @@ function _showMergePreview(data){
       <div><strong>Expenses:</strong> +${newExps} new · ${skipExps} skipped</div>
       <div><strong>GCash:</strong> +${newGC} new · ${skipGC} skipped</div>
       <div><strong>Requests:</strong> +${newReqs} new · ${skipReqs} skipped</div>
+      <div><strong>Users:</strong> +${newUsers} new · ${skipUsers} already here</div>
       <div><strong>Sync events:</strong> +${newQEvts} new of ${incomingQEvts}</div>
     </div>
     ${conflictProds>0?`<div class="al ala" style="margin-top:8px;font-size:11px">⏱ ${conflictProds} product${conflictProds>1?'s':''} have conflicting edits — <strong>newest timestamp wins</strong>.</div>`:''}
@@ -17279,6 +17301,45 @@ function doImportSmartMerge(data){
       if(localName)S.settings.storeName=localName; // never auto-overwrite store name
     }
 
+    // ── USERS — merge by user id ─────────────────────────────────────
+    // Rule: incoming user wins if it has a newer _updatedAt timestamp.
+    // Passwords from backup are restored as-is (already btoa-encoded).
+    // Never remove users that exist locally — only add/update.
+    report.users = { added:0, updated:0, skipped:0 };
+    const localUserMap = new Map((S.users||[]).map(u=>[u.id, u]));
+    (data.users||[]).forEach(imp => {
+      if (!imp || !imp.id || !imp.un) return; // skip corrupt records
+      const local = localUserMap.get(imp.id);
+      if (!local) {
+        // New user from backup — add them
+        S.users = S.users || [];
+        S.users.push({ ...imp });
+        localUserMap.set(imp.id, imp);
+        report.users.added++;
+      } else {
+        // User exists — update if incoming is newer OR local has no timestamp
+        const incomingTs = imp._updatedAt || imp.created || '';
+        const localTs    = local._updatedAt || local.created || '';
+        if (incomingTs > localTs) {
+          const idx = S.users.findIndex(u => u.id === imp.id);
+          if (idx >= 0) {
+            // Always keep the locally-set password (security: don't overwrite pw from backup)
+            const keepPw = S.users[idx].pw;
+            S.users[idx] = { ...imp, pw: keepPw };
+            report.users.updated++;
+          }
+        } else {
+          report.users.skipped++;
+        }
+      }
+    });
+    // Guarantee at least one active admin after merge
+    if (!S.users || !S.users.find(u => u.role === 'admin' && !u._deleted)) {
+      S.users = S.users || [];
+      S.users.unshift({ id:'admin', nm:'Junne (Owner)', un:'admin', pw:btoa('admin123'), role:'admin', created:new Date().toISOString() });
+    }
+    S.users = S.users.filter(u => u && u.un && u.id); // sanitize
+
     dataStore._persist();
     syncQueue.push('settings','update','smartMerge',{
       ts:new Date().toISOString(),by:CU?.nm,
@@ -17289,9 +17350,10 @@ function doImportSmartMerge(data){
     updBadge();renderDash();renderInv();
     if($('syncmon-log'))renderSyncMon();
 
-    const totalAdded=report.products.added+report.products.updated+report.transactions.added+report.expenses.added+report.gcash.added+report.requests.added;
+    const totalAdded=report.products.added+report.products.updated+report.transactions.added+report.expenses.added+report.gcash.added+report.requests.added+(report.users?.added||0);
     const conflicts=report.products.updated+(report.requests.updated||0);
-    showMsg('impmsg',`✅ Smart Merge complete — ${totalAdded} records merged${conflicts>0?` · ${conflicts} conflict${conflicts>1?'s':''} resolved (newest kept)`:''}.`,'alg');
+    const usersMsg=(report.users?.added||0)>0?` · ${report.users.added} user(s) restored`:'';
+    showMsg('impmsg',`✅ Smart Merge complete — ${totalAdded} records merged${conflicts>0?` · ${conflicts} conflict${conflicts>1?'s':''} resolved (newest kept)`:''}${usersMsg}.`,'alg');
   }catch(err){
     console.error('Smart merge error:',err);
     showMsg('impmsg','❌ Merge failed: '+err.message,'alr');
@@ -18363,7 +18425,7 @@ document.addEventListener('keydown', (e) => {
 console.log('[Phase 6A] QR Code Support loaded ✅');
 
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║  PHASE 6B — AI STORE ASSISTANT                        KPOS.V6.1.C ║
+// ║  PHASE 6B — AI STORE ASSISTANT                        KPOS.V6.1.C2 ║
 // ║  Primary:  Google Gemini 1.5 Flash (FREE — no credit card)      ║
 // ║  Fallback: Groq Llama3 (FREE — generous limits)                 ║
 // ║  Offline-first: gracefully disabled when no internet.           ║
@@ -18930,7 +18992,7 @@ window.addEventListener('offline', () => { aiCheckStatus(); aiCheckOnline(); });
 console.log('[Phase 6B] AI Store Assistant loaded ✅ (Gemini Flash / Groq — free APIs)');
 
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║  PHASE 6C — SMART INVENTORY (AI Camera)              KPOS.V6.1.C ║
+// ║  PHASE 6C — SMART INVENTORY (AI Camera)              KPOS.V6.1.C2 ║
 // ║  Snap a photo of a product → Gemini Vision identifies it        ║
 // ║  → auto-fills Name, Category, Buy/Sell price in Add Product     ║
 // ║  Uses same free Gemini API key as Phase 6B AI Assistant         ║
