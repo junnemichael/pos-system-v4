@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- Kyrie's Store Point of Sale System
-     Version: KPOS.V6.1.C2
+     Version: KPOS.V7.1.F2
      Storage: IndexedDB (scalable, offline-first)
      Architecture: Single-file, zero dependencies
 -->
@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="Kyrie's POS"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#15803d"/>
-<title>Kyrie's Store POS — KPOS.V6.1.C2</title>
+<title>Kyrie's Store POS — KPOS.V7.1.F2</title>
 <style>
 :root{--bg:#f4f4f0;--sf:#fff;--sf2:#f0efe9;--bd:#e2e1da;--tx:#1c1c1a;--tx2:#6a6a60;--tx3:#a0a090;--gn:#15803d;--gnb:#dcfce7;--gnt:#14532d;--gnl:#bbf7d0;--am:#b45309;--amb:#fef3c7;--amt:#78350f;--rd:#b91c1c;--rdb:#fee2e2;--rdt:#7f1d1d;--bl:#1d4ed8;--blb:#dbeafe;--blt:#1e3a8a;--pu:#7c3aed;--pub:#ede9fe;--put:#4c1d95;--or:#c2410c;--orb:#ffedd5;--ort:#7c2d12;--r:10px;--rs:6px;--rl:14px}
 [data-theme=dark]{--bg:#111;--sf:#1c1c1a;--sf2:#252523;--bd:#333;--tx:#f0f0ec;--tx2:#a0a090;--tx3:#555;--gn:#22c55e;--gnb:#052e16;--gnt:#86efac;--gnl:#166534;--am:#fbbf24;--amb:#451a03;--amt:#fcd34d;--rd:#f87171;--rdb:#450a0a;--rdt:#fca5a5;--bl:#60a5fa;--blb:#1e3a5f;--blt:#93c5fd;--pu:#a78bfa;--pub:#2e1065;--put:#c4b5fd;--or:#fb923c;--orb:#431407;--ort:#fdba74}
@@ -10602,7 +10602,7 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
     <button class="lbtn" onclick="doLogin()">Sign In</button>
     <div id="le" style="color:var(--rd);font-size:13px;text-align:center;margin-top:10px;min-height:18px"></div>
     <div style="text-align:center;margin-top:18px;font-size:11px;color:#9ca3af;letter-spacing:.03em">
-      Kyrie's Store POS &nbsp;·&nbsp; KPOS.V6.1.C2 &nbsp;·&nbsp; Powered by IndexedDB
+      Kyrie's Store POS &nbsp;·&nbsp; KPOS.V7.1.F2 &nbsp;·&nbsp; Powered by IndexedDB
     </div>
   </div>
 </div>
@@ -10692,6 +10692,8 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
   </div>
   <!-- POS -->
   <div id="tab-pos" class="panel ct">
+    <!-- § 20 CREDIT ALERT STRIP — visible to cashier and admin in POS -->
+    <div id="pos-credit-strip" style="display:none;margin-bottom:10px"></div>
     <div class="g2">
       <div>
         <div class="card">
@@ -11102,6 +11104,240 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
     <!-- Request list -->
     <div id="rqlist"></div>
   </div>
+  <!-- ═══════════════════════════════════════════════════════════════
+       § 20  DEBT LEDGER TAB  —  KPOS.V7.1.F2
+       Admin-only. Lists all registered credit customers.
+       Cashier cannot access this tab directly.
+       ═══════════════════════════════════════════════════════════════ -->
+  <div id="tab-creditLedger" class="panel ct">
+
+    <!-- Header row -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div>
+        <h2 style="font-size:17px;font-weight:700;margin:0">📒 Debt Ledger</h2>
+        <p style="font-size:12px;color:var(--tx2);margin:2px 0 0">Manage customer credit accounts — register, track, collect</p>
+      </div>
+      <button class="btn bp" onclick="clOpenRegister()">➕ Register Customer</button>
+    </div>
+
+    <!-- Credit alert banner — shown when there are urgent issues -->
+    <div id="cl-alert-banner" style="display:none;margin-bottom:12px"></div>
+
+    <!-- Summary cards -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:14px" id="cl-summary-cards">
+      <div class="card" style="padding:10px 12px;text-align:center">
+        <div style="font-size:11px;color:var(--tx2);margin-bottom:2px">Total Outstanding</div>
+        <div id="cl-total-outstanding" style="font-size:18px;font-weight:800;color:var(--rd)">₱0.00</div>
+      </div>
+      <div class="card" style="padding:10px 12px;text-align:center">
+        <div style="font-size:11px;color:var(--tx2);margin-bottom:2px">Active Customers</div>
+        <div id="cl-active-count" style="font-size:18px;font-weight:800;color:var(--gn)">0</div>
+      </div>
+      <div class="card" style="padding:10px 12px;text-align:center">
+        <div style="font-size:11px;color:var(--tx2);margin-bottom:2px">Overdue</div>
+        <div id="cl-overdue-count" style="font-size:18px;font-weight:800;color:var(--am)">0</div>
+      </div>
+      <div class="card" style="padding:10px 12px;text-align:center">
+        <div style="font-size:11px;color:var(--tx2);margin-bottom:2px">Blocked</div>
+        <div id="cl-blocked-count" style="font-size:18px;font-weight:800;color:var(--tx3)">0</div>
+      </div>
+    </div>
+
+    <!-- Search + filter -->
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <input type="text" id="cl-search" placeholder="Search customer name…"
+        oninput="clRenderLedger()" style="flex:1;min-width:160px;font-size:13px"/>
+      <select id="cl-filter" onchange="clRenderLedger()" style="font-size:13px">
+        <option value="all">All</option>
+        <option value="active">Active</option>
+        <option value="overdue">Overdue</option>
+        <option value="blocked">Blocked</option>
+      </select>
+    </div>
+
+    <!-- Customer list -->
+    <div id="cl-customer-list" style="display:flex;flex-direction:column;gap:8px">
+      <div style="text-align:center;padding:40px;color:var(--tx2)">
+        <div style="font-size:32px;margin-bottom:8px">📒</div>
+        <div style="font-weight:600">No customers registered yet</div>
+        <div style="font-size:12px;margin-top:4px">Tap "Register Customer" to add your first credit customer</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       REGISTER CREDIT CUSTOMER MODAL  —  KPOS.V7.1.F2
+       Admin-only. Requires face photo + signature + agreement.
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="ov" id="mcl-register">
+    <div class="mo mol" style="max-width:520px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div>
+          <h2 style="margin:0;font-size:16px">👤 Register Credit Customer</h2>
+          <p style="margin:2px 0 0;font-size:12px;color:var(--tx2)">All fields required. Photo + signature mandatory.</p>
+        </div>
+        <button class="btn bs" onclick="closeM('mcl-register')">✕</button>
+      </div>
+
+      <!-- Step indicator -->
+      <div style="display:flex;gap:0;margin:10px 0 14px;border-radius:var(--rs);overflow:hidden;border:1px solid var(--bd)">
+        <div id="cl-step-1-ind" style="flex:1;padding:6px;text-align:center;font-size:11px;font-weight:700;background:var(--gn);color:#fff">1 Details</div>
+        <div id="cl-step-2-ind" style="flex:1;padding:6px;text-align:center;font-size:11px;font-weight:700;background:var(--sf2);color:var(--tx3)">2 Photos</div>
+        <div id="cl-step-3-ind" style="flex:1;padding:6px;text-align:center;font-size:11px;font-weight:700;background:var(--sf2);color:var(--tx3)">3 Agreement</div>
+      </div>
+
+      <!-- STEP 1: Customer details -->
+      <div id="cl-step-1">
+        <div class="g2">
+          <div class="fi"><label class="fl">Full Name <span style="color:var(--rd)">*</span></label>
+            <input type="text" id="cl-nm" placeholder="e.g. Maria Santos"/></div>
+          <div class="fi"><label class="fl">Contact Number <span style="color:var(--rd)">*</span></label>
+            <input type="tel" id="cl-contact" placeholder="09XX-XXX-XXXX"/></div>
+        </div>
+        <div class="fi" style="margin-bottom:10px"><label class="fl">Address <span style="color:var(--rd)">*</span></label>
+          <input type="text" id="cl-address" placeholder="Street, Barangay, City"/></div>
+        <div class="g2">
+          <div class="fi"><label class="fl">Valid ID Type</label>
+            <select id="cl-idtype">
+              <option value="">— select —</option>
+              <option>PhilSys / National ID</option>
+              <option>Driver's License</option>
+              <option>Passport</option>
+              <option>Voter's ID</option>
+              <option>SSS / GSIS ID</option>
+              <option>Barangay ID</option>
+              <option>Other</option>
+            </select></div>
+          <div class="fi"><label class="fl">ID Number</label>
+            <input type="text" id="cl-idnum" placeholder="ID number (optional)"/></div>
+        </div>
+        <div class="g2">
+          <div class="fi"><label class="fl">Credit Limit (₱) <span style="color:var(--rd)">*</span></label>
+            <input type="number" id="cl-limit" placeholder="e.g. 200"/></div>
+          <div class="fi"><label class="fl">Due Days <span style="color:var(--rd)">*</span></label>
+            <select id="cl-duedays">
+              <option value="7">7 days (recommended)</option>
+              <option value="14">14 days (max)</option>
+            </select></div>
+        </div>
+        <div style="margin-top:4px" id="cl-step1-msg"></div>
+        <div class="mbt" style="margin-top:14px">
+          <button class="btn" onclick="closeM('mcl-register')">Cancel</button>
+          <button class="btn bp" onclick="clStep1Next()">Next: Photos →</button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Photos (face + signature) -->
+      <div id="cl-step-2" style="display:none">
+        <div class="al alb" style="font-size:12px;margin-bottom:12px;line-height:1.6">
+          📷 <strong>Two photos required</strong> for legal validity under Philippine law (RA 10173 / Data Privacy Act).<br>
+          These are stored only on this device and included in your backup.
+        </div>
+
+        <!-- Face photo -->
+        <div style="margin-bottom:14px">
+          <div style="font-weight:700;font-size:13px;margin-bottom:6px">① Customer Face Photo</div>
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div id="cl-face-preview" style="width:90px;height:90px;background:var(--sf2);border:2px dashed var(--bd);border-radius:var(--rs);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;font-size:28px">👤</div>
+            <div style="flex:1">
+              <button class="btn bs" onclick="clCapturePhoto('face')" style="width:100%;margin-bottom:6px">📷 Take Photo</button>
+              <label class="btn bs" style="width:100%;text-align:center;cursor:pointer;display:block">
+                📁 Upload Photo<input type="file" accept="image/*" onchange="clUploadPhoto('face',this)" style="display:none"/>
+              </label>
+            </div>
+          </div>
+          <div id="cl-face-status" style="font-size:12px;color:var(--tx3);margin-top:4px">⚠️ Required</div>
+        </div>
+
+        <!-- Signature photo -->
+        <div style="margin-bottom:14px">
+          <div style="font-weight:700;font-size:13px;margin-bottom:6px">② Customer Signature</div>
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div id="cl-sig-preview" style="width:90px;height:90px;background:var(--sf2);border:2px dashed var(--bd);border-radius:var(--rs);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;font-size:28px">✍️</div>
+            <div style="flex:1">
+              <button class="btn bs" onclick="clCapturePhoto('sig')" style="width:100%;margin-bottom:6px">📷 Capture Signature</button>
+              <label class="btn bs" style="width:100%;text-align:center;cursor:pointer;display:block">
+                📁 Upload Signature<input type="file" accept="image/*" onchange="clUploadPhoto('sig',this)" style="display:none"/>
+              </label>
+            </div>
+          </div>
+          <div id="cl-sig-status" style="font-size:12px;color:var(--tx3);margin-top:4px">⚠️ Required</div>
+        </div>
+
+        <!-- Camera strip for photo capture -->
+        <div id="cl-cam-strip" style="display:none;background:#000;border-radius:var(--rs);overflow:hidden;margin-bottom:10px;position:relative">
+          <video id="cl-video" playsinline autoplay muted style="width:100%;height:200px;object-fit:cover;display:block"></video>
+          <canvas id="cl-canvas" style="display:none"></canvas>
+          <div style="position:absolute;bottom:8px;left:0;right:0;display:flex;justify-content:center;gap:8px">
+            <button onclick="clCaptureSnap()" style="background:var(--gn);color:#fff;border:none;border-radius:50px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">📸 Capture</button>
+            <button onclick="clCamClose()" style="background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50px;padding:10px 14px;font-size:13px;cursor:pointer;font-family:inherit">✕</button>
+          </div>
+        </div>
+
+        <div id="cl-step2-msg" style="margin-bottom:8px"></div>
+        <div class="mbt">
+          <button class="btn" onclick="clStepGo(1)">← Back</button>
+          <button class="btn bp" onclick="clStep2Next()">Next: Agreement →</button>
+        </div>
+      </div>
+
+      <!-- STEP 3: Agreement & contract -->
+      <div id="cl-step-3" style="display:none">
+        <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;font-size:12px;line-height:1.7;margin-bottom:12px" id="cl-agreement-text">
+          <!-- Filled dynamically by clStepGo(3) -->
+        </div>
+
+        <div class="al alb" style="font-size:11px;margin-bottom:12px;line-height:1.55">
+          ⚖️ <strong>Legal basis:</strong> This agreement is a valid contract under the Civil Code of the Philippines (Art. 1305–1317).
+          The signed agreement with face photo constitutes proof of obligation enforceable under Philippine law.
+          Data collected is protected under RA 10173 (Data Privacy Act) and used solely for store credit management.
+        </div>
+
+        <div style="margin-bottom:12px">
+          <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:13px">
+            <input type="checkbox" id="cl-agree-chk" style="margin-top:2px;flex-shrink:0"/>
+            <span>The customer has read and <strong>agrees to the terms</strong> above. I confirm the identity and photos are accurate.</span>
+          </label>
+        </div>
+
+        <div id="cl-step3-msg" style="margin-bottom:8px"></div>
+        <div class="mbt">
+          <button class="btn" onclick="clStepGo(2)">← Back</button>
+          <button class="btn bp" onclick="clSaveCustomer()">✅ Register Customer</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CAMERA MODAL for photo capture (face/signature) -->
+  <div class="ov" id="mcl-cam">
+    <div class="mo" style="max-width:380px">
+      <h2 style="margin-bottom:8px" id="mcl-cam-title">📷 Take Photo</h2>
+      <div style="background:#000;border-radius:var(--rs);overflow:hidden;margin-bottom:10px;position:relative">
+        <video id="mcl-video" playsinline autoplay muted style="width:100%;height:240px;object-fit:cover;display:block"></video>
+        <canvas id="mcl-canvas" style="display:none"></canvas>
+      </div>
+      <div class="mbt" style="justify-content:center">
+        <button class="btn" onclick="clCamModalClose()">Cancel</button>
+        <button class="btn bp" onclick="clCamModalSnap()">📸 Capture</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOMER DETAIL MODAL — view full profile + transactions -->
+  <div class="ov" id="mcl-detail">
+    <div class="mo mol" style="max-width:520px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h2 style="margin:0;font-size:16px" id="mcldet-title">Customer Details</h2>
+        <button class="btn bs" onclick="closeM('mcl-detail')">✕</button>
+      </div>
+      <div id="mcl-detail-body" style="font-size:13px"></div>
+      <div class="mbt" style="margin-top:12px" id="mcl-detail-btns"></div>
+    </div>
+  </div>
+
   <!-- AI ASSISTANT — Phase 6B -->
   <div id="tab-aiassistant" class="panel ct">
     <div style="margin-bottom:12px"><button class="btn bs" onclick="switchTab('settings')" style="font-size:12px;color:var(--tx2)">← Back to Settings</button></div>
@@ -11459,7 +11695,7 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
 
     <!-- Version footer — always visible -->
     <div style="text-align:center;padding:16px 0 4px;font-size:11px;color:var(--tx3);letter-spacing:.04em">
-      Kyrie's Sari-Sari Store POS &nbsp;·&nbsp; <strong style="color:var(--gn)">KPOS.V6.1.C2</strong> &nbsp;·&nbsp; Local-first · No cloud required · Phase 6A: QR &nbsp;·&nbsp; Phase 6B: AI Assistant &nbsp;·&nbsp; Phase 6C: Smart Inventory
+      Kyrie's Sari-Sari Store POS &nbsp;·&nbsp; <strong style="color:var(--gn)">KPOS.V7.1.F2</strong> &nbsp;·&nbsp; Local-first · No cloud required · v7.0 — Code Cleanup + QR &nbsp;·&nbsp; AI Assistant &nbsp;·&nbsp; Smart Inventory
     </div>
   </div>
 </div>
@@ -11510,7 +11746,208 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
     </div>
   </div>
 </div>
-<!-- FACTORY RESET MODAL — Phase 8D: requires admin password + typed confirmation -->
+  <!-- ═══════════════════════════════════════════════════════════════
+       CREDIT CHECKOUT MODAL  —  KPOS.V7.1.F2
+       Cashier selects which registered customer to add utang to.
+       Shows balance, limit, status clearly before confirming.
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="ov" id="mcl-checkout">
+    <div class="mo" style="max-width:500px">
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <h2 style="margin:0;font-size:16px">📒 Add to Utang</h2>
+          <p style="margin:2px 0 0;font-size:12px;color:var(--tx2)" id="mclco-subtitle">Select the customer for this credit transaction</p>
+        </div>
+        <button class="btn bs" onclick="closeM('mcl-checkout')">✕</button>
+      </div>
+
+      <!-- Cart summary -->
+      <div class="card" style="padding:10px 12px;margin-bottom:12px;background:var(--gnb)">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:12px;color:var(--tx2)" id="mclco-items-summary">0 items</div>
+          <div style="font-size:20px;font-weight:800;color:var(--gn)" id="mclco-total">₱0.00</div>
+        </div>
+        <div id="mclco-items-list" style="font-size:11px;color:var(--tx2);margin-top:4px;max-height:60px;overflow-y:auto"></div>
+      </div>
+
+      <!-- Customer search -->
+      <div style="margin-bottom:8px">
+        <input type="text" id="mclco-search" placeholder="Search customer name…"
+          oninput="clRenderCreditPicker()" style="font-size:13px;width:100%"/>
+      </div>
+
+      <!-- Customer list picker -->
+      <div id="mclco-picker" style="max-height:240px;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
+        <!-- Filled by clRenderCreditPicker() -->
+      </div>
+
+      <!-- Selected customer confirmation panel (hidden until customer picked) -->
+      <div id="mclco-confirm" style="display:none">
+        <div class="card" style="padding:10px 12px;margin-bottom:10px;border:2px solid var(--gn)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:14px" id="mclco-cname"></div>
+              <div style="font-size:12px;color:var(--tx2)" id="mclco-ccontact"></div>
+            </div>
+            <button class="btn bs" style="font-size:11px;flex-shrink:0" onclick="clClearCreditPick()">Change</button>
+          </div>
+          <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:12px;text-align:center">
+            <div style="background:var(--sf2);padding:6px;border-radius:var(--rs)">
+              <div style="color:var(--tx2);font-size:10px">Balance</div>
+              <div style="font-weight:700;color:var(--rd)" id="mclco-balance"></div>
+            </div>
+            <div style="background:var(--sf2);padding:6px;border-radius:var(--rs)">
+              <div style="color:var(--tx2);font-size:10px">Limit</div>
+              <div style="font-weight:700" id="mclco-limit"></div>
+            </div>
+            <div style="background:var(--sf2);padding:6px;border-radius:var(--rs)">
+              <div style="color:var(--tx2);font-size:10px">Available</div>
+              <div style="font-weight:700;color:var(--gn)" id="mclco-available"></div>
+            </div>
+          </div>
+          <!-- Warning banners — shown conditionally -->
+          <div id="mclco-warn" style="margin-top:8px"></div>
+        </div>
+        <div class="mbt">
+          <button class="btn" onclick="closeM('mcl-checkout')">Cancel</button>
+          <button class="btn bp" id="mclco-confirm-btn" onclick="clConfirmCreditCheckout()">✅ Confirm Utang</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       PAYMENT RECORDING MODAL  —  KPOS.V7.1.F2 (multi-txn upgrade)
+       Supports selecting one or multiple transactions to pay at once.
+       Select All calculates combined total. Full or partial payment.
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="ov" id="mcl-payment">
+    <div class="mo" style="max-width:440px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div>
+          <h2 style="margin:0;font-size:16px">💰 Record Payment</h2>
+          <p style="margin:2px 0 0;font-size:12px;color:var(--tx2)" id="mclpay-subtitle"></p>
+        </div>
+        <button class="btn bs" onclick="closeM('mcl-payment')">✕</button>
+      </div>
+
+      <!-- Transaction selector -->
+      <div style="margin:10px 0 8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:12px;font-weight:700;color:var(--tx2)">Select transactions to pay:</span>
+          <div style="display:flex;gap:6px">
+            <button class="btn bs" style="font-size:11px;padding:3px 10px"
+              onclick="clPaySelectAll(true)">☑ All</button>
+            <button class="btn bs" style="font-size:11px;padding:3px 10px"
+              onclick="clPaySelectAll(false)">☐ None</button>
+          </div>
+        </div>
+        <div id="mclpay-txn-list"
+          style="display:flex;flex-direction:column;gap:5px;max-height:180px;
+                 overflow-y:auto;-webkit-overflow-scrolling:touch">
+          <!-- Filled by clOpenPaymentMulti() -->
+        </div>
+      </div>
+
+      <!-- Combined summary — updates as checkboxes change -->
+      <div class="card" style="padding:10px 12px;margin-bottom:10px;background:var(--sf2)">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+          <span style="color:var(--tx2)">Selected transactions</span>
+          <span id="mclpay-sel-count" style="font-weight:700">0</span>
+        </div>
+        <div id="mclpay-penalty-row"
+          style="display:none;justify-content:space-between;font-size:12px;margin-bottom:3px">
+          <span style="color:var(--am)">⚠️ Penalties included</span>
+          <span id="mclpay-penalty" style="color:var(--am);font-weight:700"></span>
+        </div>
+        <div style="border-top:1px solid var(--bd);margin-top:6px;padding-top:6px;
+                    display:flex;justify-content:space-between;font-size:16px">
+          <span style="font-weight:700">Total Due</span>
+          <span id="mclpay-balance" style="font-weight:800;color:var(--rd)">₱0.00</span>
+        </div>
+      </div>
+
+      <!-- Amount input -->
+      <div class="fi" style="margin-bottom:10px">
+        <label class="fl">Amount Received (₱) <span style="color:var(--rd)">*</span></label>
+        <input type="number" id="mclpay-amount" placeholder="0.00"
+          oninput="clPayCalc()" style="font-size:16px;font-weight:700"/>
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap" id="mclpay-quick-btns">
+          <!-- Quick buttons injected by clPayUpdateSummary() -->
+        </div>
+      </div>
+
+      <!-- Payment method -->
+      <div class="fi" style="margin-bottom:10px">
+        <label class="fl">Payment Method</label>
+        <div style="display:flex;gap:8px">
+          <button id="mclpay-meth-cash" onclick="clPaySetMethod('cash')"
+            class="btn bp bs" style="flex:1">💵 Cash</button>
+          <button id="mclpay-meth-gcash" onclick="clPaySetMethod('gcash')"
+            class="btn bs" style="flex:1">📱 GCash/Maya</button>
+        </div>
+      </div>
+
+      <!-- Change / remaining calculator -->
+      <div id="mclpay-calc" style="display:none;margin-bottom:10px">
+        <div class="card" style="padding:10px 12px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px">
+            <span>Amount Received</span>
+            <span id="mclpay-calc-recv" style="font-weight:700"></span>
+          </div>
+          <div id="mclpay-change-row"
+            style="display:none;justify-content:space-between;font-size:13px;margin-bottom:3px">
+            <span>Change</span>
+            <span id="mclpay-calc-change" style="font-weight:700;color:var(--gn)"></span>
+          </div>
+          <div id="mclpay-remaining-row"
+            style="display:none;justify-content:space-between;font-size:13px">
+            <span>Remaining Balance</span>
+            <span id="mclpay-calc-remaining" style="font-weight:700;color:var(--am)"></span>
+          </div>
+        </div>
+      </div>
+
+      <div id="mclpay-msg" style="margin-bottom:8px"></div>
+      <div class="mbt">
+        <button class="btn" onclick="closeM('mcl-payment')">Cancel</button>
+        <button class="btn bp" id="mclpay-confirm-btn"
+          onclick="clConfirmPayment()" disabled>✅ Confirm Payment</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTRACT VIEWER MODAL — KPOS.V7.1.F2 patch -->
+  <div class="ov" id="mcl-contract">
+    <div class="mo mol" style="max-width:620px;padding:0;overflow:hidden">
+
+      <!-- Toolbar -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--sf2);border-bottom:1px solid var(--bd);gap:8px;flex-wrap:wrap">
+        <div style="font-weight:700;font-size:14px" id="mcl-contract-title">📄 Credit Agreement</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn bs" onclick="clContractPrint()" title="Print or Save as PDF via browser print dialog">🖨 Print / PDF</button>
+          <button class="btn bs" onclick="clContractDownloadImg()" title="Download as JPEG image">📥 Download Image</button>
+          <button class="btn" onclick="closeM('mcl-contract')">✕ Close</button>
+        </div>
+      </div>
+
+      <!-- Contract body — scrollable -->
+      <div style="overflow-y:auto;max-height:78vh;-webkit-overflow-scrolling:touch;padding:0">
+        <div id="mcl-contract-body" style="background:#fff;color:#000;font-family:Georgia,serif;padding:36px 40px;line-height:1.8;font-size:13px">
+          <!-- Filled by clViewContract() -->
+        </div>
+        <!-- Hidden canvas for image export -->
+        <canvas id="mcl-contract-canvas" style="display:none"></canvas>
+      </div>
+
+      <!-- Footer note -->
+      <div style="padding:8px 16px;background:var(--sf2);border-top:1px solid var(--bd);font-size:11px;color:var(--tx3);text-align:center">
+        💡 Tip: Use <strong>Print / PDF</strong> → "Save as PDF" in your browser's print dialog to get a PDF file.
+      </div>
+    </div>
+  </div>
 <div class="ov" id="mfactreset">
   <div class="mo" style="max-width:440px">
     <h2 style="color:var(--rd)">🗑 Factory Reset</h2>
@@ -11681,9 +12118,9 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
     </div>
     <div id="mptyinfo" class="al alb" style="display:none;margin-bottom:10px;font-size:12px"></div>
     <div class="g3">
-      <div class="fi"><label class="fl">Buy price (₱)</label><input type="number" id="mpbuy" oninput="mpCS()"/></div>
-      <div class="fi"><label class="fl">Margin (%)</label><input type="number" id="mpmg" oninput="mpCS()"/></div>
-      <div class="fi"><label class="fl" id="mpsplbl">Sell price (₱)</label><input type="number" id="mpsp" oninput="mpRM()"/></div>
+      <div class="fi"><label class="fl">Buy price (₱)</label><input type="number" id="mpbuy" oninput="calcSellFromMargin()"/></div>
+      <div class="fi"><label class="fl">Margin (%)</label><input type="number" id="mpmg" oninput="calcSellFromMargin()"/></div>
+      <div class="fi"><label class="fl" id="mpsplbl">Sell price (₱)</label><input type="number" id="mpsp" oninput="recalcMargin()"/></div>
     </div>
     <div id="mpht" style="display:none" class="al alg"></div>
     <div class="g2">
@@ -11830,16 +12267,36 @@ const _DEFAULT_STATE = {
   pendingApprovals: [],
   invLog: [],
   notifSnooze: {},   // { [notifId]: expiryTimestamp } — persisted across sessions
-  settings: { storeName: "Kyrie's Sari-Sari Store", address: 'Olongapo City, Zambales', contact: '', footer: 'Thank you! God bless!' },
+
+  // ── § 20  CREDIT / UTANG SYSTEM ──────────────────────────────────
+  // All three collections are included in backup/restore automatically
+  // because they live inside S and _persist() serialises all of S.
+  creditCustomers:    [],  // registered debtors (see schema in § 20)
+  creditTransactions: [],  // individual utang records per customer
+  creditPayments:     [],  // payment records linked to creditTransactions
+
+  settings: {
+    storeName: "Kyrie's Sari-Sari Store",
+    address:   'Olongapo City, Zambales',
+    contact:   '',
+    footer:    'Thank you! God bless!',
+    // ── Credit system settings (editable by admin in Settings) ──
+    creditDefaultLimit:  200,   // ₱ default credit limit for new customers
+    creditDueDays:       7,     // days until payment is due (7 or 14)
+    creditGraceDays:     3,     // days after due date before penalty kicks in
+    creditPenaltyType:   'fixed', // 'fixed' | 'percent'
+    creditPenaltyValue:  20,    // ₱20 fixed OR e.g. 2 for 2% per month
+    creditAutoBlockDays: 7,     // days overdue before auto-block
+  },
   darkMode: false,
   txnCounter: 0,
   lastBackup: null,
   gcashLastFeeDate: null,
   _syncMeta: {
-    deviceId: null,       // assigned on first load — identifies this browser/device
-    lastSyncAt: null,     // ISO timestamp of last successful cloud sync (future use)
-    syncEnabled: false,   // true when a cloud adapter is plugged in (Phase 10B+)
-    syncProvider: null,   // 'firebase' | 'supabase' | 'manual' — set by adapter
+    deviceId:     null,
+    lastSyncAt:   null,
+    syncEnabled:  false,
+    syncProvider: null,
   },
 };
 
@@ -11857,6 +12314,36 @@ let CU = null, pf = 'All', pdel = null, pudel = null, lrec = '';
 const SYNC_QUEUE_KEY = 'kyries_syncq_v1';
 
 // In-memory queue (also persisted so it survives page refresh)
+
+// ████████████████████████████████████████████████████████████████████████
+// ██                                                                    ██
+// ██         KYRIE'S SARI-SARI STORE POS  —  KPOS.V7.1.F2               ██
+// ██                   APPLICATION CODE START                          ██
+// ██                                                                   ██
+// ██   TABLE OF CONTENTS                                               ██
+// ██   ──────────────────────────────────────────────────────────────  ██
+// ██   § 1   SYNC ENGINE & CONFLICT RULES                              ██
+// ██   § 2   INDEXED DB STORAGE LAYER                                  ██
+// ██   § 3   UTILITY HELPERS (saveToStorage, generateBarcode, etc.)    ██
+// ██   § 4   AUTH — LOGIN / LOGOUT                                     ██
+// ██   § 5   NAVIGATION & NOTIFICATIONS                                ██
+// ██   § 6   DASHBOARD RENDERING                                       ██
+// ██   § 7   POS — CART & CHECKOUT                                     ██
+// ██   § 8   INVENTORY MANAGEMENT                                      ██
+// ██   § 9   REPORTS & TRANSACTIONS                                    ██
+// ██   § 10  GCASH MODULE                                              ██
+// ██   § 11  FINANCIALS & EXPENSES                                     ██
+// ██   § 12  USER MANAGEMENT                                           ██
+// ██   § 13  SETTINGS & BACKUP / RESTORE                               ██
+// ██   § 14  CSV EXPORTS                                               ██
+// ██   § 15  SYNC PANEL & MONITOR                                      ██
+// ██   § 16  STORE BANNER & FACTORY RESET                              ██
+// ██   § 17  PHASE 6A — QR CODE SUPPORT                               ██
+// ██   § 18  PHASE 6B — AI STORE ASSISTANT                            ██
+// ██   § 19  PHASE 6C — SMART INVENTORY (AI CAMERA)                  ██
+// ██                                                                   ██
+// ████████████████████████████████████████████████████████████████████████
+
 let pendingSyncQueue = [];
 
 function _loadSyncQueue() {
@@ -13325,6 +13812,11 @@ const idbStore = {
 // then sets a flag so it never runs again.
 const MIGRATION_FLAG = 'kss_idb_migrated_v1';
 
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  § 2  INDEXED DB STORAGE LAYER                                   ║
+// ║  dataStore object — _persist(), bulkReplace(), all CRUD ops     ║
+// ║  _migrateToIDB() — one-time migration from localStorage         ║
+// ╚══════════════════════════════════════════════════════════════════╝
 function _migrateToIDB() {
   // Already migrated — skip
   try { if (localStorage.getItem(MIGRATION_FLAG) === '1') return; } catch(e) {}
@@ -13432,6 +13924,18 @@ const dataStore = {
         S.products      = Array.isArray(S.products)      ? S.products.filter(p=>p&&p.nm)      : [];
         S.transactions  = Array.isArray(S.transactions)  ? S.transactions                     : [];
         S.users         = Array.isArray(S.users)         ? S.users.filter(u=>u&&u.un)         : [];
+        // § 20 Credit collections — initialise if missing (backward compat with older backups)
+        S.creditCustomers    = Array.isArray(S.creditCustomers)    ? S.creditCustomers    : [];
+        S.creditTransactions = Array.isArray(S.creditTransactions) ? S.creditTransactions : [];
+        S.creditPayments     = Array.isArray(S.creditPayments)     ? S.creditPayments     : [];
+        // Credit settings — back-fill defaults for older backups that predate § 20
+        if (!S.settings) S.settings = { ..._DEFAULT_STATE.settings };
+        S.settings.creditDefaultLimit  = S.settings.creditDefaultLimit  ?? 200;
+        S.settings.creditDueDays       = S.settings.creditDueDays       ?? 7;
+        S.settings.creditGraceDays     = S.settings.creditGraceDays     ?? 3;
+        S.settings.creditPenaltyType   = S.settings.creditPenaltyType   ?? 'fixed';
+        S.settings.creditPenaltyValue  = S.settings.creditPenaltyValue  ?? 20;
+        S.settings.creditAutoBlockDays = S.settings.creditAutoBlockDays ?? 7;
         S.gcashLog      = Array.isArray(S.gcashLog)      ? S.gcashLog                         : [];
         S.expenses      = Array.isArray(S.expenses)      ? S.expenses                         : [];
         S.invLog        = Array.isArray(S.invLog)        ? S.invLog.slice(-2000)              : []; // cap log to 2000
@@ -13773,10 +14277,15 @@ try{_loadSyncQueue();}catch(e){console.warn('[POS] syncQueue load error:',e);}
 try{dataStore._load();}catch(e){console.warn('[POS] data load error:',e);}
 
 // ── LEGACY SHIMS ────────────────────────────────────────────────────
-// sv() and ld() are sync helpers used by UI code.
+// saveToStorage() and loadFromStorage() are sync helpers used by UI code.
 // They write to localStorage + IDB (via dataStore methods).
-function sv()  { dataStore._persist(); }
-function ld()  { dataStore._load(); }
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  § 3  UTILITY HELPERS                                            ║
+// ║  saveToStorage, loadFromStorage, generateBarcode,               ║
+// ║  startClockTick, parseLocalDate, esc(), showMsg(), etc.         ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function saveToStorage()  { dataStore._persist(); }
+function loadFromStorage()  { dataStore._load(); }
 
 // ── SEED DEFAULT DATA IF FIRST RUN ──────────────────────────────────
 if (!S.catMargins || !Object.keys(S.catMargins).length)
@@ -13846,7 +14355,8 @@ function parseLocalDate(str){
     const d=new Date(str);return isNaN(d)?null:d;
   }catch(e){return null;}
 }
-function genC(){const d=new Date().toISOString().slice(0,10).replace(/-/g,'');S.txnCounter=(S.txnCounter||0)+1;dataStore.saveTxnCounter(S.txnCounter);const n=String(S.txnCounter).padStart(4,'0');return`KSS-${d}-${n}`;}
+/** Generates a unique barcode string for new products. Format: timestamp-based. */
+function generateBarcode(){const d=new Date().toISOString().slice(0,10).replace(/-/g,'');S.txnCounter=(S.txnCounter||0)+1;dataStore.saveTxnCounter(S.txnCounter);const n=String(S.txnCounter).padStart(4,'0');return`KSS-${d}-${n}`;}
 // action: 'add'|'edit'|'delete'|'restock'|'sale'|'return'|'adjustment'|'void_restore'
 function logInv(action, product, detail, qty, prevStock, newStock){
   const entry = {
@@ -13897,8 +14407,8 @@ function updBadge(){
     const bell=$('ntfbell');if(bell)bell.style.display='none';
   }
 }
-function tick(){try{const el=$('clk');if(el)el.textContent=new Date().toLocaleString('en-PH',{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){try{const el=$('clk');if(el)el.textContent=new Date().toLocaleString();}catch(e2){}}}
-try{tick();}catch(e){}try{setInterval(tick,1000);}catch(e){}
+function startClockTick(){try{const el=$('clk');if(el)el.textContent=new Date().toLocaleString('en-PH',{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){try{const el=$('clk');if(el)el.textContent=new Date().toLocaleString();}catch(e2){}}}
+try{startClockTick();}catch(e){}try{setInterval(tick,1000);}catch(e){}
 function applyTheme(){document.documentElement.setAttribute('data-theme',S.darkMode?'dark':'light');const sw=$('dmsw');const ic=$('dmi');if(sw)sw.classList.toggle('on',S.darkMode);if(ic)ic.textContent=S.darkMode?'☀️':'🌙';}
 function toggleDark(){S.darkMode=!S.darkMode;dataStore.saveDarkMode(S.darkMode);applyTheme();}
 try{applyTheme();}catch(e){console.warn('[POS] applyTheme error:',e);}
@@ -13951,12 +14461,16 @@ setTimeout(function restoreSession(){
 }, 0);
 $('lp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 $('lu').addEventListener('keydown',e=>{if(e.key==='Enter')$('lp').focus();});
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  § 4  AUTH — LOGIN / LOGOUT                                     ║
+// ╚══════════════════════════════════════════════════════════════════╝
+/** Authenticates user with username/password against S.users. Sets CU (current user) on success. */
 function doLogin(){
   const un=$('lu').value.trim(),pw=$('lp').value;
   if(!un||!pw){$('le').textContent='❌ Please enter username and password.';return;}
   // Load fresh data from IDB (async) then authenticate
   // Use sync load first for instant feedback, IDB load happens in background
-  ld();
+  loadFromStorage();
   const user=S.users.find(u=>u.un===un&&u.pw===btoa(pw));
   if(!user){$('le').textContent='❌ Incorrect username or password.';return;}
   // Deep-copy user object so CU is fully independent of S.users reference
@@ -14003,6 +14517,7 @@ function doLogin(){
     CU=null;
   }
 }
+/** Logs out the current user, clears session, returns to login screen. */
 function doLogout(){
   if(CU){ dataStore.appendLoginLog({uid:CU.id,nm:CU.nm,role:CU.role,time:new Date().toLocaleString('en-PH'),action:'logout'}); }
   // Full session reset — clear CU and all role-sensitive UI state
@@ -14030,13 +14545,14 @@ function doLogout(){
 // TABS
 // ADMIN: 5 clean tabs. Reports/Users/Financials/Insights open inside Settings.
 const ATABS=[
-  {id:'dashboard',lbl:'📊 Dashboard'},
-  {id:'pos',      lbl:'🛒 POS'},
-  {id:'inventory',lbl:'📦 Inventory',badge:true},
-  {id:'gcash',    lbl:'💳 GCash/Maya'},
-  {id:'settings', lbl:'⚙️ More'},
+  {id:'dashboard',   lbl:'📊 Dashboard'},
+  {id:'pos',         lbl:'🛒 POS'},
+  {id:'inventory',   lbl:'📦 Inventory',badge:true},
+  {id:'gcash',       lbl:'💳 GCash/Maya'},
+  {id:'creditLedger',lbl:'📒 Debt Ledger'},
+  {id:'settings',    lbl:'⚙️ More'},
 ];
-// CASHIER: 5 clean tabs
+// CASHIER: no Debt Ledger tab — cashier sees credit info only at POS
 const CTABS=[
   {id:'dashboard',lbl:'📊 Dashboard'},
   {id:'pos',      lbl:'🛒 POS'},
@@ -14045,6 +14561,9 @@ const CTABS=[
   {id:'requests', lbl:'📋 My Requests',badge:true},
 ];
 let TABS=[];
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  § 5  NAVIGATION & NOTIFICATIONS                                 ║
+// ╚══════════════════════════════════════════════════════════════════╝
 function buildTabs(){
   const admin=isAd();
   TABS=admin?ATABS:CTABS;
@@ -14058,7 +14577,7 @@ function buildTabs(){
   const ab=$('addbtn');if(ab)ab.style.display=admin?'':'none';
 }
 // Admin-only pages that cashiers cannot navigate to
-const ADMIN_ONLY=['reports','financials','users','insights','settings','aiassistant'];
+const ADMIN_ONLY=['reports','financials','users','insights','settings','aiassistant','creditLedger'];
 function switchTab(t){
   if(!CU)return;
   const admin=isAd();
@@ -14076,7 +14595,7 @@ function switchTab(t){
   const p=$('tab-'+t);if(p)p.classList.add('active');
   window.scrollTo({top:0,behavior:'smooth'});
   if(t==='dashboard')renderDash();
-  if(t==='pos'){renderPG();setTimeout(()=>{const i=$('bci');if(i)i.focus();},80);}
+  if(t==='pos'){renderPG();clRenderPOSStrip();setTimeout(()=>{const i=$('bci');if(i)i.focus();},80);}
   if(t==='inventory')renderInv();
   if(t==='reports'){setRDates();renderRpt();switchRSubTab('sales');}
   if(t==='gcash')renderGC();
@@ -14086,6 +14605,7 @@ function switchTab(t){
   if(t==='insights'){const el=$('instime');if(el)el.textContent='Click \'Refresh\' to generate insights.';}
   if(t==='settings')loadSt();
   if(t==='aiassistant')aiOnOpen();
+  if(t==='creditLedger')clRenderLedger();
   updBadge();
 }
 // NOTIFICATIONS — Phase 7C
@@ -14233,6 +14753,99 @@ function buildNotifs(){
     });
   }
 
+  // ── § 20 CREDIT ALERTS ───────────────────────────────────────────
+  // Only built if there are credit customers registered
+  if ((S.creditCustomers || []).length > 0) {
+    const activeCusts = clActiveCustomers();
+
+    // ALERT A: OVERDUE customers — have unpaid transactions past due date
+    const overdueCusts = activeCusts.filter(c =>
+      clTxnsFor(c.id).some(t => t.status === 'OVERDUE')
+    );
+    if (overdueCusts.length && !isNotifSnoozed('credit_overdue')) {
+      const totalOverdue = overdueCusts.reduce((s, c) =>
+        s + clTxnsFor(c.id)
+          .filter(t => t.status === 'OVERDUE')
+          .reduce((ss, t) => ss + t.balanceRemaining, 0), 0
+      );
+      notifs.push({
+        id:       'credit_overdue',
+        level:    'urgent',
+        icon:     '📒',
+        category: 'Debt Ledger',
+        title:    `${overdueCusts.length} customer${overdueCusts.length > 1 ? 's' : ''} with overdue utang`,
+        body:     overdueCusts.slice(0, 4).map(c =>
+          `<strong>${esc(c.name)}</strong> (₱${clGetBalance(c.id).toFixed(2)})`
+        ).join(' · ') + (overdueCusts.length > 4 ? ` +${overdueCusts.length - 4} more` : '') +
+        ` — Total overdue: <strong>₱${totalOverdue.toFixed(2)}</strong>`,
+        action:   { label: 'View Debt Ledger', tab: 'creditLedger' },
+        snoozable: true,
+      });
+    }
+
+    // ALERT B: BLOCKED customers — auto-blocked due to non-payment
+    const blockedCusts = activeCusts.filter(c => c.status === 'BLOCKED');
+    if (blockedCusts.length && !isNotifSnoozed('credit_blocked')) {
+      notifs.push({
+        id:       'credit_blocked',
+        level:    'warn',
+        icon:     '🚫',
+        category: 'Debt Ledger',
+        title:    `${blockedCusts.length} customer${blockedCusts.length > 1 ? 's' : ''} blocked from credit`,
+        body:     blockedCusts.slice(0, 4).map(c =>
+          `<strong>${esc(c.name)}</strong>`
+        ).join(', ') + (blockedCusts.length > 4 ? ` +${blockedCusts.length - 4} more` : '') +
+        ' — tap to review and collect payment or unblock.',
+        action:   { label: 'View Debt Ledger', tab: 'creditLedger' },
+        snoozable: true,
+      });
+    }
+
+    // ALERT C: Near credit limit (≥80% used, not overdue)
+    const nearLimitCusts = activeCusts.filter(c => {
+      if (c.status === 'BLOCKED') return false;
+      const bal = clGetBalance(c.id);
+      const pct = c.creditLimit > 0 ? bal / c.creditLimit : 0;
+      return pct >= 0.8 && !clTxnsFor(c.id).some(t => t.status === 'OVERDUE');
+    });
+    if (nearLimitCusts.length && !isNotifSnoozed('credit_nearlimit')) {
+      notifs.push({
+        id:       'credit_nearlimit',
+        level:    'info',
+        icon:     '⚠️',
+        category: 'Debt Ledger',
+        title:    `${nearLimitCusts.length} customer${nearLimitCusts.length > 1 ? 's' : ''} near credit limit`,
+        body:     nearLimitCusts.slice(0, 4).map(c => {
+          const pct = Math.round((clGetBalance(c.id) / c.creditLimit) * 100);
+          return `<strong>${esc(c.name)}</strong> (${pct}% used)`;
+        }).join(', ') + (nearLimitCusts.length > 4 ? ` +${nearLimitCusts.length - 4} more` : ''),
+        action:   { label: 'View Debt Ledger', tab: 'creditLedger' },
+        snoozable: true,
+      });
+    }
+
+    // ALERT D: Total outstanding utang > 30% of this week's revenue (risk threshold)
+    const weekAgo     = new Date(now - 7 * 86400000);
+    const weekRevenue = (S.transactions || [])
+      .filter(t => t.status !== 'voided' && t.status !== 'returned' && new Date(t.date) >= weekAgo)
+      .reduce((s, t) => s + (t.total || 0), 0);
+    const totalUtang  = activeCusts.reduce((s, c) => s + clGetBalance(c.id), 0);
+    const utangRatio  = weekRevenue > 0 ? totalUtang / weekRevenue : 0;
+    if (utangRatio >= 0.3 && totalUtang > 0 && !isNotifSnoozed('credit_risk')) {
+      notifs.push({
+        id:       'credit_risk',
+        level:    'info',
+        icon:     '📊',
+        category: 'Debt Ledger',
+        title:    `Utang is ${Math.round(utangRatio * 100)}% of this week's revenue`,
+        body:     `Total outstanding: <strong>₱${totalUtang.toFixed(2)}</strong> vs ₱${weekRevenue.toFixed(2)} weekly revenue. Golden rule: keep utang below 30%.`,
+        action:   { label: 'View Debt Ledger', tab: 'creditLedger' },
+        snoozable: true,
+      });
+    }
+  }
+  // ── END § 20 CREDIT ALERTS ──────────────────────────────────────
+
   return notifs;
 }
 
@@ -14298,6 +14911,9 @@ function renderNotifPanel(){
 }
 
 // updBadge handles the bell count after snooze/dismiss
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  § 6  DASHBOARD RENDERING                                        ║
+// ╚══════════════════════════════════════════════════════════════════╝
 function renderCashierDash(){
   const el=$('dcashr');if(!el)return;
   if(isAd()){el.style.display='none';return;}
@@ -14387,11 +15003,16 @@ function searchDashReceipt(){
 }
 // POS
 let cart=[];
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  § 7  POS — CART & CHECKOUT                                      ║
+// ╚══════════════════════════════════════════════════════════════════╝
 function renderPG(){
+  const cr=$('poscr');
+  const gr=$('posgr');
+  if(!cr||!gr) return; // ← guard: POS elements not in DOM yet
   const cats=['All',...S.categories];
   // JSON.stringify wraps values in double-quotes which breaks the HTML attribute,
   // causing multi-word categories like "Instant Food" to never fire.
-  const cr=$('poscr');
   cr.innerHTML=cats.map(c=>`<button class="cb_${pf===c?' on':''}" data-cat="${esc(c)}">${c}</button>`).join('');
   // Attach click handlers via JS (safe, no quoting issues)
   cr.querySelectorAll('button[data-cat]').forEach(btn=>{
@@ -14402,23 +15023,24 @@ function renderPG(){
   let prods=pf==='All'?_activeProds:_activeProds.filter(p=>p.cat===pf);
   if(srch)prods=prods.filter(p=>p.nm.toLowerCase().includes(srch)||p.bc.toLowerCase().includes(srch));
   if(!prods.length){
-    $('posgr').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--tx3);font-size:13px">${srch?`No products matching "<strong>${srch}</strong>"`:'No products in this category.'}</div>`;
+    gr.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--tx3);font-size:13px">${srch?`No products matching "<strong>${srch}</strong>"`:'No products in this category.'}</div>`;
     return;
   }
-  $('posgr').innerHTML=prods.map(p=>`<div class="pt${p.stock<=0?' out':''}" data-bc="${esc(p.bc)}" title="${esc(p.nm)}">
+  gr.innerHTML=prods.map(p=>`<div class="pt${p.stock<=0?' out':''}" data-bc="${esc(p.bc)}" title="${esc(p.nm)}">
     ${p.ty==='tingi'||p.ty==='candy'?'<div class="tg">tingi</div>':p.ty==='stick'?'<div class="tg" style="background:var(--pub);color:var(--put);border-color:#c4b5fd">🚬</div>':''}
     <div class="pt-n">${esc(p.nm)}</div><div class="pt-p">${peso(p.sell)}<span style="font-size:9px;opacity:.7">/${unitLabel(p.ty)}</span></div><div class="pt-s">Stock:${p.stock} ${unitLabel(p.ty)}s</div>
   </div>`).join('');
   // Attach product click handlers safely via JS
-  $('posgr').querySelectorAll('.pt:not(.out)').forEach(el=>{
-    el.addEventListener('click',()=>addC(el.dataset.bc));
+  gr.querySelectorAll('.pt:not(.out)').forEach(el=>{
+    el.addEventListener('click',()=>addToCart(el.dataset.bc));
   });
 }
 function setPF(c){
   pf=c;
   renderPG();
 }
-function addC(bc){
+/** Adds a product to the cart by barcode. Creates new cart item or increments qty. */
+function addToCart(bc){
   const p=S.products.find(x=>x.bc===bc);if(!p||p.stock<=0)return;
   const ex=cart.find(c=>c.bc===bc);
   if(ex){if(ex.qty>=p.stock){showMsg('scmsg',`⚠️ Only ${p.stock} in stock.`,'ala');return;}ex.qty++;}
@@ -14461,8 +15083,11 @@ document.addEventListener('keydown', function kbGlobal(e) {
     // ENTER inside a text/number input that's NOT a modal field: do nothing special
   }
 });
+/** Handles barcode field submission — looks up product, adds to cart, or triggers Open Food Facts lookup. */
 function scanItem(){
   const q=$('bci').value.trim();if(!q)return;
+  // § 20E: show credit status warning if name matches a credit customer
+  if(q.length>=2 && typeof clCheckPOSCustomerStatus==='function') clCheckPOSCustomerStatus(q);
   const p=findP(q);
   if(!p){
     // Check if it looks like a barcode (digits only, 6-14 chars) → lookup name
@@ -14488,19 +15113,19 @@ function scanItem(){
       $('bci').value='';$('bci').focus();
     }
   } else {
-    addC(p.bc);
+    addToCart(p.bc);
     $('bci').value='';$('bci').focus();
   }
 }
-function chQ(i,d){
+function changeQuantity(i,d){
   const p=S.products.find(x=>x.bc===cart[i].bc);const nq=cart[i].qty+d;
   if(nq<=0){cart.splice(i,1);}
   else if(p&&nq>p.stock){showMsg('scmsg',`⚠️ Only ${p.stock} available.`,'ala');return;}
   else cart[i].qty=nq;
   renderCart();
 }
-function remC(i){cart.splice(i,1);renderCart();}
-function setQ(i,val){
+function removeFromCart(i){cart.splice(i,1);renderCart();}
+function setCartQty(i,val){
   const p=S.products.find(x=>x.bc===cart[i].bc);
   const nq=parseInt(val)||0;
   if(nq<=0){cart.splice(i,1);}
@@ -14513,6 +15138,7 @@ function setQ(i,val){
   }
   renderCart();
 }
+/** Re-renders the POS cart UI from the current cart[] array state. */
 function renderCart(){
   $('chdr').textContent=cart.length?`(${cart.reduce((s,c)=>s+c.qty,0)} items)`:'';
   if(!cart.length){$('cbody').innerHTML='<div style="text-align:center;padding:28px;color:var(--tx3)">Cart is empty</div>';$('ctot').innerHTML='';return;}
@@ -14520,15 +15146,15 @@ function renderCart(){
     <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.nm}${(it.ty==='tingi'||it.ty==='candy')?' <span class="tg">tingi</span>':it.ty==='stick'?' <span class="tg" style="background:var(--pub);color:var(--put);border-color:#c4b5fd">🚬</span>':''}</div>
     <div style="font-size:11px;color:var(--tx2)">${it.cat}·${peso(it.sell)}/${unitLabel(it.ty)}</div></div>
     <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
-      <div class="qb" onclick="chQ(${i},-1)">−</div>
+      <div class="qb" onclick="changeQuantity(${i},-1)">−</div>
       <input type="number" min="0" value="${it.qty}"
         style="width:44px;text-align:center;font-weight:700;font-size:13px;padding:4px 2px;border:1px solid var(--bd);border-radius:var(--rs);background:var(--sf);color:var(--tx)"
-        onchange="setQ(${i},this.value)"
+        onchange="setCartQty(${i},this.value)"
         oninput="this.value=this.value.replace(/[^0-9]/g,'')"
         title="Edit qty"/>
-      <div class="qb" onclick="chQ(${i},1)">+</div>
+      <div class="qb" onclick="changeQuantity(${i},1)">+</div>
       <div style="min-width:64px;text-align:right;font-weight:700;font-size:13px">${peso(it.sell*it.qty)}</div>
-      <button class="rb" onclick="remC(${i})">×</button>
+      <button class="rb" onclick="removeFromCart(${i})">×</button>
     </div>
   </div>`).join('');
   const tot=cart.reduce((s,c)=>s+c.sell*c.qty,0);
@@ -14538,6 +15164,7 @@ function renderCart(){
     <input type="number" id="cshi" placeholder="Amount paid…" style="font-size:15px;margin-top:4px" oninput="calcCh(${tot})"/></div>
     <div id="chgout" style="margin-top:8px;min-height:36px"></div>
     <button class="btn bp bf bx" style="margin-top:10px" onclick="checkout(${tot})">✅ Checkout</button>
+    <button class="btn bf" style="background:var(--pub);color:var(--put);border-color:var(--pu);margin-top:6px" onclick="clOpenCreditCheckout(${tot})">📒 Add to Utang</button>
     <button class="btn bf" style="margin-top:6px" onclick="clrCart()">🗑 Clear cart</button>
   </div>`;
 }
@@ -14548,11 +15175,12 @@ function calcCh(tot){
   el.innerHTML=c<0?`<div class="al alr">⚠️ Short by ${peso(Math.abs(c))}</div>`:`<div class="al alg" style="font-size:18px;font-weight:700">Change: ${peso(c)}</div>`;
 }
 function clrCart(){if(!cart.length||confirm('Clear cart? All items will be removed.')){cart=[];renderCart();}}
+/** Processes current cart as a completed sale. Handles cash, GCash, credit. Saves transaction to IndexedDB. */
 function checkout(tot){
   const cash=parseFloat($('cshi')?.value)||0;
   if(cash<tot){showMsg('scmsg','❌ Cash less than total!','alr');return;}
   const change=cash-tot,profit=cart.reduce((s,c)=>s+(c.sell-c.buy)*c.qty,0);
-  const now=new Date(),code=genC(),ss=S.settings;
+  const now=new Date(),code=generateBarcode(),ss=S.settings;
   // FIX BUG-08: include bc in items so return/void can reliably find the product by barcode
   const txn={rc:code,date:now.toLocaleDateString('en-PH'),time:now.toLocaleTimeString('en-PH'),cashier:CU?.nm||'',cashierId:CU?.id||'',items:cart.map(c=>({nm:c.nm,bc:c.bc,qty:c.qty,price:c.sell,buy:c.buy,ty:c.ty||'regular'})),total:tot,profit,cash,change,status:'completed'};
   dataStore.createTransaction(txn);
@@ -14633,6 +15261,9 @@ function popCats(){
 const INV_PAGE_SIZE = 150;
 let _invPage = 0;
 
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  § 8  INVENTORY MANAGEMENT                                       ║
+// ╚══════════════════════════════════════════════════════════════════╝
 function renderInv(){
   popCats();
   const q=($('iq')?.value||'').toLowerCase(),cat=$('icat')?.value||'',st=$('ist')?.value||'';
@@ -14838,15 +15469,15 @@ function mpTyChg(){
   if(sl)sl.textContent=ty==='stick'?'Sell price / stick (₱)':ty==='candy'?'Sell price / piece (₱)':ty==='tingi'?'Sell price / piece (₱)':'Sell price (₱)';
   if(stl)stl.textContent=ty==='stick'?'Stock (sticks)':ty==='candy'?'Stock (pieces)':ty==='tingi'?'Stock (pieces)':'Stock qty';
   // Auto-set margin for tingi/stick/candy categories
-  if(ty==='stick'){const mg=$('mpmg');if(mg&&!parseFloat(mg.value))mg.value=60;mpCS();}
-  if(ty==='candy'){const mg=$('mpmg');if(mg&&!parseFloat(mg.value))mg.value=60;mpCS();}
-  if(ty==='tingi'){const mg=$('mpmg');if(mg&&!parseFloat(mg.value))mg.value=60;mpCS();}
+  if(ty==='stick'){const mg=$('mpmg');if(mg&&!parseFloat(mg.value))mg.value=60;calcSellFromMargin();}
+  if(ty==='candy'){const mg=$('mpmg');if(mg&&!parseFloat(mg.value))mg.value=60;calcSellFromMargin();}
+  if(ty==='tingi'){const mg=$('mpmg');if(mg&&!parseFloat(mg.value))mg.value=60;calcSellFromMargin();}
 }
 function mpCatChg(){
   const cat=$('mpcat')?.value||'';
   const mg=$('mpmg');
   if(mg&&(!parseFloat(mg.value)||parseFloat(mg.value)===30)){
-    mg.value=S.catMargins[cat]||30;mpCS();
+    mg.value=S.catMargins[cat]||30;calcSellFromMargin();
   }
 }
 function openPM(bc){
@@ -14870,16 +15501,17 @@ function openPM(bc){
     ['mporig','mpbc','mpn','mpbuy','mpsp','mpst'].forEach(id=>$(id).value='');
     $('mpcat').value=S.categories[0]||'';$('mpty').value='regular';$('mpla').value='5';
     $('mpmg').value=S.catMargins[$('mpcat')?.value||'']||30;
-    $('mpdel').style.display='none';mpCS();mpTyChg();
+    $('mpdel').style.display='none';calcSellFromMargin();mpTyChg();
   }
   $('mpmsg').innerHTML='';
-  // Phase 6C: Smart Inventory — show snap bar only on Add (not Edit), reset camera state
+  // Smart Inventory — show snap bar only on Add (not Edit), reset camera state
   siResetZone(!!bc);
   openM('mpm');
 }
-function mpCS(){const buy=parseFloat($('mpbuy').value)||0,m=parseFloat($('mpmg').value)||0;if(buy>0&&m>0){const s=buy*(1+m/100);$('mpsp').value=s.toFixed(2);$('mpht').style.display='block';$('mpht').textContent=`Buy ${peso(buy)} + ${m}% = Sell ${peso(s)} · Profit: ${peso(s-buy)}/item`;}else $('mpht').style.display='none';}
-function mpRM(){const buy=parseFloat($('mpbuy').value)||0,sell=parseFloat($('mpsp').value)||0;if(buy>0&&sell>0){const m=((sell-buy)/buy)*100;$('mpmg').value=m.toFixed(1);$('mpht').style.display='block';$('mpht').textContent=`${m.toFixed(1)}% margin · Profit: ${peso(sell-buy)}/item`;}
+function calcSellFromMargin(){const buy=parseFloat($('mpbuy').value)||0,m=parseFloat($('mpmg').value)||0;if(buy>0&&m>0){const s=buy*(1+m/100);$('mpsp').value=s.toFixed(2);$('mpht').style.display='block';$('mpht').textContent=`Buy ${peso(buy)} + ${m}% = Sell ${peso(s)} · Profit: ${peso(s-buy)}/item`;}else $('mpht').style.display='none';}
+function recalcMargin(){const buy=parseFloat($('mpbuy').value)||0,sell=parseFloat($('mpsp').value)||0;if(buy>0&&sell>0){const m=((sell-buy)/buy)*100;$('mpmg').value=m.toFixed(1);$('mpht').style.display='block';$('mpht').textContent=`${m.toFixed(1)}% margin · Profit: ${peso(sell-buy)}/item`;}
 }
+/** Validates and saves a product (new or edit) to IndexedDB and state. */
 function saveProd(){
   ['mpbc','mpn','mpcat','mpty','mpbuy','mpsp','mpst','mpla','mpmg'].forEach(id=>{const el=$(id);if(el)el.removeAttribute('readonly');});
   if(!isAd()){showMsg('mpmsg','❌ Admin access required.','alr');return;}
@@ -15013,7 +15645,7 @@ function openTM(code){
   bts.push(`<button class="btn bo_" onclick="prtTxn('${code}')">🖨 Print</button>`);
   if(!vd&&!rt){
     if(isAd()){
-      bts.push(`<button class="btn ba_" onclick="retT('${code}')">↩ Return</button>`);
+      bts.push(`<button class="btn ba_" onclick="openReturnModal('${code}')">↩ Return</button>`);
     } else {
       // Cashier: check if a return request is already pending for this transaction
       const pndRet=(S.pendingApprovals||[]).find(a=>a.code===code&&a.type==='Return'&&a.status==='pending');
@@ -15044,7 +15676,7 @@ function doApprVoid(){closeM('mvapp');}
 // Void functionality removed to simplify UI. Use Return instead.
 // Admin: return transaction — opens modal with reason field
 let _retCode='';
-function retT(code){
+function openReturnModal(code){
   const t=S.transactions.find(x=>x.rc===code);if(!t)return;
   _retCode=code;
   _cashierRetMode=false; // always admin mode here
@@ -15144,12 +15776,26 @@ function confRetT(){
   }
 
   // ── ADMIN MODE: process immediately ──────────────────────────────
+  // Guard: prevent double-processing if somehow called twice
+  if (t.status === 'returned') {
+    showMsg('mretmsg', '⚠️ This transaction has already been returned.', 'ala');
+    closeM('mret');
+    _retCode = '';
+    return;
+  }
+
   // Determine if stock should be restored based on reason
   const shouldRestore = !['Damaged product', 'Expired product'].includes(cat);
-  
-  // SAFE CONFIRMATION
+
+  // Confirmation dialog — if user cancels, stop here (do NOT modify anything)
   const confirmMsg = `Are you sure you want to process this return?\n\nReason: ${cat}\nStock Restoration: ${shouldRestore ? 'YES' : 'NO'}`;
-  if(!confirm(confirmMsg)) return;
+  if (!confirm(confirmMsg)) return;
+
+  // ── Close modal and clear code IMMEDIATELY after confirm ──────────
+  // This prevents any possibility of double-confirm
+  closeM('mret');
+  const returnedCode = _retCode;
+  _retCode = '';
 
   t.status='returned';
   t.returnNote=fullReason;
@@ -15174,17 +15820,63 @@ function confRetT(){
   dataStore.updateTransaction(_retCode,{status:t.status,returnNote:t.returnNote,returnBy:t.returnBy,returnAt:t.returnAt,returnRef:t.returnRef});
   syncEngine.onInventoryUpdate(_retCode, 'return');
   syncEngine.onSale(_retCode);
-  updBadge();closeM('mret');
-  
-  // RE-RENDER ALL PANELS TO ENSURE STATE IS SYNCED AND DASHBOARD NUMBERS PERSIST
+
+  // ── CREDIT RECONCILIATION — runs only if this was a credit transaction ──
+  // When a credit sale is returned, reduce the customer's debt by the
+  // returned amount. This mirrors what cashflow does for cash refunds.
+  if (t.paymentMethod === 'credit' && t.creditTxnId) {
+    const creditTxn = (S.creditTransactions || []).find(x => x.id === t.creditTxnId);
+    if (creditTxn && creditTxn.status !== 'PAID') {
+      const returnedAmt = t.items.reduce((s, i) => s + (i.price * i.qty), 0);
+      const deduct      = Math.min(returnedAmt, creditTxn.balanceRemaining);
+
+      creditTxn.balanceRemaining = parseFloat((creditTxn.balanceRemaining - deduct).toFixed(2));
+      creditTxn.balanceRemaining = Math.max(0, creditTxn.balanceRemaining);
+
+      // Mark transaction status — use RETURNED (not PAID) so history is clear
+      // PAID = customer paid cash. RETURNED = items came back, debt cancelled.
+      if (creditTxn.balanceRemaining <= 0) {
+        creditTxn.status        = 'RETURNED';
+        creditTxn.paidAt        = new Date().toISOString();
+        creditTxn.paidByReturn  = true;
+      }
+      creditTxn._updatedAt = new Date().toISOString();
+
+      // Update the customer's running balance
+      const custIdx = (S.creditCustomers || []).findIndex(c => c.id === t.creditCustomerId);
+      if (custIdx >= 0) {
+        const newBal = Math.max(0, parseFloat(
+          (S.creditCustomers[custIdx].currentBalance - deduct).toFixed(2)
+        ));
+        S.creditCustomers[custIdx].currentBalance = newBal;
+        S.creditCustomers[custIdx]._updatedAt     = new Date().toISOString();
+      }
+
+      dataStore._persist();
+
+      // Notify admin
+      const custName = t.creditCustomerName || 'customer';
+      showNotif(`📒 ${custName}'s utang reduced by ${peso(deduct)} due to return. New balance: ${peso(Math.max(0, clGetBalance(t.creditCustomerId)))}`);
+    }
+  }
+
+  updBadge();
+
+  // RE-RENDER ALL PANELS — including credit ledger
   renderDash();
   if($('rtxns'))renderRpt();
   if($('rqlist'))renderRequests();
   if($('posgr'))renderPG();
   if($('ibody'))renderInv();
-  
-  showMsg('mtxnmsg',`✅ Return processed for ${_retCode}. ${shouldRestore?'Inventory restored.':'Inventory NOT restored (Damaged/Expired).'} Reason: "${fullReason}"`, 'alg');
-  _retCode='';
+  clRenderLedger();                // ← re-render debt ledger so balance + status update live
+
+  // If the customer detail modal is open, refresh it too
+  const detailModal = $('mcl-detail');
+  if (detailModal && detailModal.style.display !== 'none' && t.creditCustomerId) {
+    clOpenDetail(t.creditCustomerId);
+  }
+
+  showNotif(`↩ Return processed for ${returnedCode}. ${shouldRestore ? 'Stock restored.' : 'Stock NOT restored (Damaged/Expired).'}`);
 }
 // REPORTS
 // Reports period state
@@ -15369,6 +16061,9 @@ function expInvLogCSV(){
   dlCSV(`kyries_invlog_${new Date().toISOString().slice(0,10)}.csv`,c);
 }
 // GCASH
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  § 10  GCASH MODULE                                              ║
+// ╚══════════════════════════════════════════════════════════════════╝
 function calcGF(){
   const a=parseFloat($('gca').value)||0,type=$('gct').value,rate=(S.gcashRates||{})[type]||1.5;
   if(a>0){const f=a*rate/100;$('gch').style.display='block';$('gch').textContent=`${rate}% of ${peso(a)} = ${peso(f)}`;$('gcf').value=f.toFixed(2);}
@@ -15754,6 +16449,9 @@ const EXP_CATS={
   'Other':        {icon:'📌',color:'var(--tx2)',bg:'var(--sf2)'}
 };
 let _delExpId=null;
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  § 11  FINANCIALS & EXPENSES                                     ║
+// ╚══════════════════════════════════════════════════════════════════╝
 function getFinPeriod(){
   const p=$('finperiod')?.value||'month';
   const now=new Date();
@@ -16051,6 +16749,9 @@ function expFinCSV(){
   a.click();
 }
 // USERS
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  § 12  USER MANAGEMENT                                           ║
+// ╚══════════════════════════════════════════════════════════════════╝
 function renderUsers(){
   $('usrlist').innerHTML=softDelete.active(S.users).map(u=>`<div class="uc">
     <div class="ua ${u.role==='admin'?'ua-a':'ua-c'}">${u.nm[0].toUpperCase()}</div>
@@ -16455,6 +17156,33 @@ function openApprReturn(id){
       dataStore.updateTransaction(r.code,{status:t.status,returnNote:t.returnNote,returnBy:t.returnBy,returnAt:t.returnAt,returnRef:t.returnRef});
       syncEngine.onInventoryUpdate(r.code,'return');
       syncEngine.onSale(r.code);
+
+      // ── CREDIT RECONCILIATION (approval path) ───────────────────────
+      // Same logic as direct admin return — reduce debt if credit sale
+      if (t.paymentMethod === 'credit' && t.creditTxnId) {
+        const creditTxn = (S.creditTransactions || []).find(x => x.id === t.creditTxnId);
+        if (creditTxn && creditTxn.status !== 'PAID') {
+          const returnedAmt = t.items.reduce((s, i) => s + (i.price * i.qty), 0);
+          const deduct      = Math.min(returnedAmt, creditTxn.balanceRemaining);
+          creditTxn.balanceRemaining = Math.max(0, parseFloat((creditTxn.balanceRemaining - deduct).toFixed(2)));
+          if (creditTxn.balanceRemaining <= 0) {
+            creditTxn.status       = 'RETURNED';
+            creditTxn.paidAt       = new Date().toISOString();
+            creditTxn.paidByReturn = true;
+          }
+          creditTxn._updatedAt = new Date().toISOString();
+          const custIdx = (S.creditCustomers || []).findIndex(c => c.id === t.creditCustomerId);
+          if (custIdx >= 0) {
+            S.creditCustomers[custIdx].currentBalance = Math.max(0,
+              parseFloat((S.creditCustomers[custIdx].currentBalance - deduct).toFixed(2))
+            );
+            S.creditCustomers[custIdx]._updatedAt = new Date().toISOString();
+          }
+          dataStore._persist();
+          showNotif(`📒 ${t.creditCustomerName||'Customer'}'s utang reduced by ${peso(deduct)} (return approved).`);
+        }
+      }
+
       syncEngine.onRequestApproval(id,'approved');
       updBadge();
       renderDash();
@@ -16463,6 +17191,13 @@ function openApprReturn(id){
       if($('posgr'))renderPG();
       if($('ibody'))renderInv();
       if($('dcashr'))renderCashierDash();
+      clRenderLedger();  // ← re-render debt ledger live after approved return
+
+      // If customer detail modal is open, refresh it in-place
+      const detailModal = $('mcl-detail');
+      if (detailModal && detailModal.style.display !== 'none' && t.creditCustomerId) {
+        clOpenDetail(t.creditCustomerId);
+      }
     }
   });
 }
@@ -16977,6 +17712,7 @@ function _aIsNewer(a,b){
 }
 
 // ── EXPORT: SMART SYNC FILE ───────────────────────────────────────
+/** Exports full store data as a downloadable JSON backup file. Includes all collections. */
 function expData(){
   if(!isAd()){showMsg('expjsonmsg','❌ Admin only.','alr');return;}
   const now=new Date().toISOString();
@@ -17165,6 +17901,7 @@ function doImport(){
 }
 
 // ── MODE A: REPLACE ──────────────────────────────────────────────
+/** REPLACE mode restore: overwrites ALL current data with the backup file contents. */
 function doImportReplace(data){
   try{
     dataStore.bulkReplace(data);
@@ -17184,6 +17921,7 @@ function doImportReplace(data){
 
 // ── MODE B: SMART MERGE ──────────────────────────────────────────
 // Conflict rule: LATEST TIMESTAMP WINS
+/** SMART MERGE mode restore: merges backup data with current data. Newest timestamp wins on conflicts. */
 function doImportSmartMerge(data){
   try{
     const report={
@@ -17361,6 +18099,9 @@ function doImportSmartMerge(data){
 }
 // ────────────────────────────────────────────────────────────────────────────
 // EXPORT CSV FUNCTIONS — Phase 7E
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  § 14  CSV EXPORTS                                               ║
+// ╚══════════════════════════════════════════════════════════════════╝
 function dlCSV(filename,csv){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));
@@ -17489,6 +18230,9 @@ const deviceRegistry = {
 let _spConfirmCallback = null;
 
 // ── RENDER: FULL SYNC MANAGEMENT PANEL ────────────────────────────
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  § 15  SYNC PANEL & MONITOR                                      ║
+// ╚══════════════════════════════════════════════════════════════════╝
 function renderSyncPanel() {
   if (!isAd()) return;
   const el = $('syncpanel');
@@ -17914,6 +18658,9 @@ function renderSyncMon(){
 // ─── PHASE 8E: Storage Awareness ────────────────────────────────────────────
 
 // How many days since last backup (-1 = never backed up)
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  § 16  STORE BANNER & FACTORY RESET                              ║
+// ╚══════════════════════════════════════════════════════════════════╝
 function getDaysSinceBackup(){
   if(!S.lastBackup)return -1;
   const diff=Date.now()-new Date(S.lastBackup).getTime();
@@ -18070,12 +18817,1929 @@ let _factResetTick=null;
 function cancelFactReset(){
   if(_factResetTick){clearInterval(_factResetTick);_factResetTick=null;}
   closeM('mfactdone');
-  // Re-open the input modal so admin can try again or cancel
   openM('mfactreset');
+}
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  § 20  CREDIT / UTANG SYSTEM                        KPOS.V7.1.F2 ║
+// ║  Customer registration, debt tracking, payment collection       ║
+// ║  Auto-block, penalty engine, legal agreement generator          ║
+// ║  Offline-first — all data in S.creditCustomers etc.             ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+// ── CREDIT HELPERS ───────────────────────────────────────────────────
+
+/** Returns active credit customers (not soft-deleted) */
+function clActiveCustomers() {
+  return (S.creditCustomers || []).filter(c => !c._deleted);
+}
+
+/** Returns all credit transactions for a given customer id */
+function clTxnsFor(customerId) {
+  return (S.creditTransactions || []).filter(t => t.customerId === customerId && !t._deleted);
+}
+
+/** Returns all payments for a given credit transaction id */
+function clPaymentsFor(txnId) {
+  return (S.creditPayments || []).filter(p => p.creditTxnId === txnId && !p._deleted);
+}
+
+/** Calculates current balance for a customer (sum of unpaid transaction balances) */
+function clGetBalance(customerId) {
+  return clTxnsFor(customerId)
+    .filter(t => t.status !== 'PAID' && t.status !== 'RETURNED')
+    .reduce((sum, t) => sum + (t.balanceRemaining || 0), 0);
+}
+
+/**
+ * Runs the overdue + auto-block engine.
+ * Called on app load and when Debt Ledger tab opens.
+ * Updates transaction statuses and blocks customers automatically.
+ */
+function clRunEngine() {
+  const now        = new Date();
+  const settings   = S.settings || {};
+  const graceDays  = parseInt(settings.creditGraceDays)     || 3;
+  const blockDays  = parseInt(settings.creditAutoBlockDays) || 7;
+  const penType    = settings.creditPenaltyType  || 'fixed';
+  const penValue   = parseFloat(settings.creditPenaltyValue) || 20;
+  let changed      = false;
+
+  (S.creditTransactions || []).forEach(txn => {
+    if (txn._deleted || txn.status === 'PAID' || txn.status === 'RETURNED') return;
+    const due     = new Date(txn.dueDate);
+    const daysLate = Math.floor((now - due) / 86400000);
+
+    if (daysLate > 0 && txn.status !== 'OVERDUE' && txn.status !== 'PARTIAL') {
+      txn.status = 'OVERDUE';
+      changed    = true;
+    }
+    // Apply penalty after grace period
+    if (daysLate > graceDays && !txn.penaltyApplied) {
+      const penalty = penType === 'percent'
+        ? parseFloat((txn.balanceRemaining * (penValue / 100)).toFixed(2))
+        : penValue;
+      txn.penalty           = (txn.penalty || 0) + penalty;
+      txn.balanceRemaining  = parseFloat((txn.balanceRemaining + penalty).toFixed(2));
+      txn.penaltyApplied    = true;
+      txn.penaltyDate       = now.toISOString();
+      changed               = true;
+    }
+  });
+
+  // Auto-block customers with overdue > blockDays
+  (S.creditCustomers || []).forEach(cust => {
+    if (cust._deleted || cust.status === 'BLOCKED') return;
+    const hasLongOverdue = clTxnsFor(cust.id).some(t => {
+      if (t.status !== 'OVERDUE') return false;
+      const daysLate = Math.floor((now - new Date(t.dueDate)) / 86400000);
+      return daysLate > blockDays;
+    });
+    if (hasLongOverdue) {
+      cust.status  = 'BLOCKED';
+      cust.blockedAt = now.toISOString();
+      changed        = true;
+    }
+  });
+
+  if (changed) dataStore._persist();
+}
+
+/** Generates a unique credit customer ID */
+function clGenId() {
+  return 'cc_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+}
+
+// ── LEDGER RENDER ────────────────────────────────────────────────────
+
+/** Main render function for the Debt Ledger tab */
+function clRenderLedger() {
+  clRunEngine(); // always check overdue/blocks first
+
+  const customers = clActiveCustomers();
+  const search    = ($('cl-search')?.value || '').toLowerCase();
+  const filter    = $('cl-filter')?.value || 'all';
+
+  // Summary cards
+  const totalOutstanding = customers.reduce((s, c) => s + clGetBalance(c.id), 0);
+  const activeCount      = customers.filter(c => c.status === 'ACTIVE').length;
+  const overdueCount     = customers.filter(c =>
+    clTxnsFor(c.id).some(t => t.status === 'OVERDUE')
+  ).length;
+  const blockedCount     = customers.filter(c => c.status === 'BLOCKED').length;
+
+  if ($('cl-total-outstanding')) $('cl-total-outstanding').textContent = '₱' + totalOutstanding.toFixed(2);
+  if ($('cl-active-count'))      $('cl-active-count').textContent      = activeCount;
+  if ($('cl-overdue-count'))     $('cl-overdue-count').textContent      = overdueCount;
+  if ($('cl-blocked-count'))     $('cl-blocked-count').textContent      = blockedCount;
+
+  // Filter + search
+  let visible = customers.filter(c => {
+    if (search && !c.name.toLowerCase().includes(search)) return false;
+    if (filter === 'active')  return c.status === 'ACTIVE' && !clTxnsFor(c.id).some(t => t.status === 'OVERDUE');
+    if (filter === 'overdue') return clTxnsFor(c.id).some(t => t.status === 'OVERDUE');
+    if (filter === 'blocked') return c.status === 'BLOCKED';
+    return true;
+  });
+
+  const listEl = $('cl-customer-list');
+  if (!listEl) return;
+
+  if (!visible.length) {
+    listEl.innerHTML = `<div style="text-align:center;padding:40px;color:var(--tx2)">
+      <div style="font-size:32px;margin-bottom:8px">${customers.length ? '🔍' : '📒'}</div>
+      <div style="font-weight:600">${customers.length ? 'No customers match filter' : 'No customers registered yet'}</div>
+      ${!customers.length ? '<div style="font-size:12px;margin-top:4px">Tap "Register Customer" to add your first credit customer</div>' : ''}
+    </div>`;
+    return;
+  }
+
+  listEl.innerHTML = visible.map(c => {
+    const bal       = clGetBalance(c.id);
+    const txns      = clTxnsFor(c.id);
+    const isOverdue = txns.some(t => t.status === 'OVERDUE');
+    const isBlocked = c.status === 'BLOCKED';
+    const limitPct  = c.creditLimit > 0 ? Math.min(100, (bal / c.creditLimit) * 100) : 0;
+    const barColor  = isBlocked ? 'var(--rd)' : isOverdue ? 'var(--am)' : limitPct >= 80 ? 'var(--am)' : 'var(--gn)';
+    const statusBadge = isBlocked
+      ? '<span class="badge" style="background:var(--rdb);color:var(--rdt);font-size:10px">🚫 BLOCKED</span>'
+      : isOverdue
+        ? '<span class="badge" style="background:var(--amb);color:var(--amt);font-size:10px">⚠️ OVERDUE</span>'
+        : '<span class="badge bgg" style="font-size:10px">✅ ACTIVE</span>';
+
+    // Trust score (0–100) based on payment history
+    const score     = clTrustScore(c.id);
+    const scoreColor= score >= 80 ? 'var(--gn)' : score >= 50 ? 'var(--am)' : 'var(--rd)';
+    const scoreLabel= score >= 80 ? 'TRUSTED' : score >= 50 ? 'RISKY' : 'BAD';
+
+    return `<div class="card" style="padding:10px 12px;cursor:pointer" onclick="clOpenDetail('${c.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px">
+            <span style="font-weight:700;font-size:14px">${esc(c.name)}</span>
+            ${statusBadge}
+          </div>
+          <div style="font-size:11px;color:var(--tx2)">${esc(c.contact)} · ${esc(c.address?.split(',')[0] || '')}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:16px;font-weight:800;color:${bal > 0 ? 'var(--rd)' : 'var(--gn)'}">₱${bal.toFixed(2)}</div>
+          <div style="font-size:10px;color:var(--tx3)">of ₱${c.creditLimit} limit</div>
+        </div>
+      </div>
+      <!-- Credit limit bar -->
+      <div style="background:var(--sf2);border-radius:4px;height:5px;margin:8px 0 4px;overflow:hidden">
+        <div style="background:${barColor};height:100%;width:${limitPct.toFixed(0)}%;border-radius:4px;transition:width .3s"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--tx2)">
+        <span>${txns.filter(t=>t.status!=='PAID').length} open txn${txns.filter(t=>t.status!=='PAID').length!==1?'s':''}</span>
+        <span style="color:${scoreColor};font-weight:700">⭐ ${scoreLabel} (${score}%)</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Call these directly — no override pattern needed
+  if (typeof clRenderAlertBanner === 'function') clRenderAlertBanner();
+  if (typeof clRenderPOSStrip    === 'function') clRenderPOSStrip();
+}
+
+// ── TRUST SCORE ──────────────────────────────────────────────────────
+
+/** Calculates a 0–100 trust score based on payment history */
+function clTrustScore(customerId) {
+  const txns = clTxnsFor(customerId);
+  if (!txns.length) return 100; // new customer — benefit of the doubt
+
+  const paid    = txns.filter(t => t.status === 'PAID').length;
+  const total   = txns.length;
+  const onTime  = txns.filter(t => {
+    if (t.status !== 'PAID') return false;
+    const paidDate = clPaymentsFor(t.id).reduce((latest, p) =>
+      p.paymentDate > latest ? p.paymentDate : latest, '');
+    return paidDate && paidDate <= t.dueDate;
+  }).length;
+  const overdue = txns.filter(t => t.status === 'OVERDUE').length;
+
+  const paymentScore = total > 0 ? (paid / total) * 50 : 50;
+  const onTimeScore  = paid  > 0 ? (onTime / paid) * 30 : 30;
+  const overdueDeduction = Math.min(30, overdue * 10);
+
+  return Math.max(0, Math.round(paymentScore + onTimeScore - overdueDeduction));
+}
+
+// ── REGISTRATION FLOW ────────────────────────────────────────────────
+
+// State for the registration wizard
+const CL_REG = {
+  step:      1,
+  faceB64:   null,  // base64 JPEG of face photo
+  sigB64:    null,  // base64 JPEG of signature
+  camTarget: null,  // 'face' | 'sig' — which photo we're capturing
+  camStream: null,  // active camera MediaStream
+};
+
+/** Opens the Register Customer modal, resets wizard to step 1 */
+function clOpenRegister() {
+  // Reset form
+  ['cl-nm','cl-contact','cl-address','cl-idnum'].forEach(id => { const el=$(id); if(el) el.value=''; });
+  const lim = $('cl-limit');
+  if (lim) lim.value = S.settings?.creditDefaultLimit || 200;
+  const dd  = $('cl-duedays');
+  if (dd)  dd.value  = S.settings?.creditDueDays || 7;
+
+  CL_REG.step    = 1;
+  CL_REG.faceB64 = null;
+  CL_REG.sigB64  = null;
+
+  // Reset photo previews
+  ['cl-face-preview','cl-sig-preview'].forEach((id, i) => {
+    const el = $(id);
+    if (el) el.innerHTML = i === 0 ? '👤' : '✍️';
+  });
+  if ($('cl-face-status')) $('cl-face-status').textContent = '⚠️ Required';
+  if ($('cl-sig-status'))  $('cl-sig-status').textContent  = '⚠️ Required';
+  if ($('cl-agree-chk'))   $('cl-agree-chk').checked       = false;
+  ['cl-step1-msg','cl-step2-msg','cl-step3-msg'].forEach(id => { const el=$(id); if(el) el.innerHTML=''; });
+
+  clStepGo(1);
+  openM('mcl-register');
+}
+
+/** Switches the wizard to the given step number (1, 2, or 3) */
+function clStepGo(step) {
+  CL_REG.step = step;
+  [1,2,3].forEach(s => {
+    const panel = $(`cl-step-${s}`);
+    const ind   = $(`cl-step-${s}-ind`);
+    if (panel) panel.style.display = s === step ? 'block' : 'none';
+    if (ind) {
+      ind.style.background = s === step ? 'var(--gn)' : s < step ? 'var(--gnb)' : 'var(--sf2)';
+      ind.style.color      = s <= step ? (s === step ? '#fff' : 'var(--gnt)') : 'var(--tx3)';
+    }
+  });
+}
+
+/** Validates step 1 and advances to step 2 */
+function clStep1Next() {
+  const nm      = $('cl-nm')?.value.trim();
+  const contact = $('cl-contact')?.value.trim();
+  const address = $('cl-address')?.value.trim();
+  const limit   = parseFloat($('cl-limit')?.value);
+
+  if (!nm)            return showMsg('cl-step1-msg', '❌ Full name is required.', 'alr');
+  if (!contact)       return showMsg('cl-step1-msg', '❌ Contact number is required.', 'alr');
+  if (!address)       return showMsg('cl-step1-msg', '❌ Address is required.', 'alr');
+  if (!limit || limit < 50) return showMsg('cl-step1-msg', '❌ Credit limit must be at least ₱50.', 'alr');
+
+  clStepGo(2);
+}
+
+/** Validates step 2 (photos) and advances to step 3 */
+function clStep2Next() {
+  if (!CL_REG.faceB64) return showMsg('cl-step2-msg', '❌ Face photo is required.', 'alr');
+  if (!CL_REG.sigB64)  return showMsg('cl-step2-msg', '❌ Signature photo is required.', 'alr');
+  clStepGo(3);
+  clBuildAgreement();
+}
+
+/** Builds the legal agreement text from current form values */
+function clBuildAgreement() {
+  const el       = $('cl-agreement-text');
+  if (!el) return;
+  const nm       = $('cl-nm')?.value.trim()      || '___';
+  const address  = $('cl-address')?.value.trim() || '___';
+  const contact  = $('cl-contact')?.value.trim() || '___';
+  const limit    = parseFloat($('cl-limit')?.value)  || 0;
+  const dueDays  = $('cl-duedays')?.value         || 7;
+  const store    = S.settings?.storeName           || "Kyrie's Sari-Sari Store";
+  const penType  = S.settings?.creditPenaltyType   || 'fixed';
+  const penVal   = S.settings?.creditPenaltyValue  || 20;
+  const penText  = penType === 'fixed'
+    ? `₱${penVal}.00 per overdue period`
+    : `${penVal}% per month on outstanding balance`;
+  const today    = new Date().toLocaleDateString('en-PH', { year:'numeric', month:'long', day:'numeric' });
+
+  el.innerHTML = `
+    <div style="font-family:Georgia,serif;line-height:1.8">
+      <div style="text-align:center;font-weight:700;font-size:14px;margin-bottom:10px;text-decoration:underline">
+        CREDIT / UTANG AGREEMENT
+      </div>
+      <p><strong>Store:</strong> ${esc(store)}<br>
+      <strong>Date:</strong> ${today}</p>
+      <p><strong>Debtor Information:</strong><br>
+      Name: <strong>${esc(nm)}</strong><br>
+      Address: ${esc(address)}<br>
+      Contact: ${esc(contact)}</p>
+      <p><strong>Credit Terms:</strong><br>
+      Credit Limit: <strong>₱${limit.toFixed(2)}</strong><br>
+      Payment Due: Within <strong>${dueDays} days</strong> from each transaction date.</p>
+      <p style="font-style:italic">"I, <strong>${esc(nm)}</strong>, agree to pay my outstanding balance
+      to <strong>${esc(store)}</strong> within <strong>${dueDays} days</strong> of each credit transaction.
+      Failure to pay on the due date may result in denial of further credit and possible legal action
+      under the Civil Code of the Philippines."</p>
+      <p><strong>Penalty Clause:</strong><br>
+      <em>"In case of failure to pay on the agreed due date, the debtor agrees to pay a penalty of
+      <strong>${penText}</strong> on the outstanding balance until fully paid."</em></p>
+      <p><strong>Data Privacy:</strong><br>
+      <em>"The debtor consents to the collection and storage of personal information and photos
+      for credit management purposes only, in accordance with RA 10173 (Data Privacy Act of 2012)."</em></p>
+      <p><strong>Acknowledgment:</strong><br>
+      <em>"The debtor acknowledges the obligation and agrees to all terms stated above."</em></p>
+    </div>`;
+}
+
+/** Final save — validates agreement checkbox and creates customer record */
+function clSaveCustomer() {
+  if (!$('cl-agree-chk')?.checked)
+    return showMsg('cl-step3-msg', '❌ Please confirm the customer has agreed to the terms.', 'alr');
+
+  const now  = new Date().toISOString();
+  const id   = clGenId();
+  const name = $('cl-nm')?.value.trim() || '';
+
+  // ── Duplicate name check — one account per person ──────────────
+  const existing = clActiveCustomers().find(c =>
+    c.name.toLowerCase() === name.toLowerCase()
+  );
+  if (existing) {
+    clStepGo(1);
+    return showMsg('cl-step1-msg',
+      `❌ "${name}" is already registered as a credit customer. Each customer can only have one account.`, 'alr');
+  }
+
+  const customer = {
+    id,
+    name:         $('cl-nm')?.value.trim()      || '',
+    contact:      $('cl-contact')?.value.trim() || '',
+    address:      $('cl-address')?.value.trim() || '',
+    idType:       $('cl-idtype')?.value         || '',
+    idNumber:     $('cl-idnum')?.value.trim()   || '',
+    creditLimit:  parseFloat($('cl-limit')?.value)  || 200,
+    dueDays:      parseInt($('cl-duedays')?.value)   || 7,
+    currentBalance: 0,
+    status:       'ACTIVE',
+    facePhoto:    CL_REG.faceB64  || null,
+    sigPhoto:     CL_REG.sigB64   || null,
+    agreementDate: now,
+    createdBy:    CU?.nm || 'admin',
+    createdAt:    now,
+    _updatedAt:   now,
+  };
+
+  // Store agreement text for legal record
+  customer.agreementHtml = $('cl-agreement-text')?.innerHTML || '';
+
+  S.creditCustomers = S.creditCustomers || [];
+  S.creditCustomers.push(customer);
+  dataStore._persist();
+
+  closeM('mcl-register');
+  clCamClose(); // ensure camera is stopped
+  showNotif(`✅ ${customer.name} registered as credit customer.`);
+  clRenderLedger();
+}
+
+// ── PHOTO CAPTURE ────────────────────────────────────────────────────
+
+/** Opens the camera for face or signature capture */
+async function clCapturePhoto(target) {
+  CL_REG.camTarget = target;
+  const title = $('mcl-cam-title');
+  if (title) title.textContent = target === 'face' ? '📷 Customer Face Photo' : '📷 Capture Signature';
+
+  // Stop existing stream
+  if (CL_REG.camStream) { try { CL_REG.camStream.getTracks().forEach(t => t.stop()); } catch(e){} }
+
+  try {
+    CL_REG.camStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: target === 'face' ? 'user' : 'environment', width:{ideal:1280} },
+      audio: false,
+    });
+    const video = $('mcl-video');
+    if (video) {
+      video.srcObject = CL_REG.camStream;
+      video.setAttribute('playsinline', true);
+      video.muted = true;
+      await new Promise((res, rej) => {
+        video.onloadedmetadata = () => video.play().then(res).catch(rej);
+        setTimeout(res, 2500);
+      });
+    }
+    openM('mcl-cam');
+  } catch(err) {
+    const denied = err.name === 'NotAllowedError';
+    alert(denied ? '🚫 Camera permission denied. Use "Upload Photo" instead.' : '📷 Camera not available. Use "Upload Photo" instead.');
+  }
+}
+
+/** Captures the current video frame as the target photo */
+function clCamModalSnap() {
+  const video  = $('mcl-video');
+  const canvas = $('mcl-canvas');
+  if (!video || !canvas || !video.videoWidth) return;
+
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+  const b64     = dataUrl.split(',')[1];
+
+  clSetPhoto(CL_REG.camTarget, b64, dataUrl);
+  clCamModalClose();
+}
+
+/** Handles file upload for face/signature photos */
+function clUploadPhoto(target, input) {
+  const file = input?.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    const b64     = dataUrl.split(',')[1];
+    clSetPhoto(target, b64, dataUrl);
+  };
+  reader.readAsDataURL(file);
+}
+
+/** Stores a captured/uploaded photo and updates the preview */
+function clSetPhoto(target, b64, dataUrl) {
+  if (target === 'face') {
+    CL_REG.faceB64 = b64;
+    const prev = $('cl-face-preview');
+    if (prev) { prev.innerHTML = ''; const img = document.createElement('img'); img.src = dataUrl; img.style.cssText = 'width:90px;height:90px;object-fit:cover'; prev.appendChild(img); }
+    if ($('cl-face-status')) { $('cl-face-status').textContent = '✅ Face photo captured'; $('cl-face-status').style.color = 'var(--gn)'; }
+  } else {
+    CL_REG.sigB64 = b64;
+    const prev = $('cl-sig-preview');
+    if (prev) { prev.innerHTML = ''; const img = document.createElement('img'); img.src = dataUrl; img.style.cssText = 'width:90px;height:90px;object-fit:cover'; prev.appendChild(img); }
+    if ($('cl-sig-status')) { $('cl-sig-status').textContent = '✅ Signature captured'; $('cl-sig-status').style.color = 'var(--gn)'; }
+  }
+}
+
+/** Closes the camera modal and stops the stream */
+function clCamModalClose() {
+  if (CL_REG.camStream) { try { CL_REG.camStream.getTracks().forEach(t=>t.stop()); } catch(e){} CL_REG.camStream = null; }
+  const video = $('mcl-video');
+  if (video) { try { video.srcObject = null; } catch(e){} }
+  closeM('mcl-cam');
+}
+
+/** Stops any active camera stream (called on modal close) */
+function clCamClose() {
+  clCamModalClose();
+}
+
+// ── CUSTOMER DETAIL VIEW ─────────────────────────────────────────────
+
+/** Opens the full customer detail modal */
+/**
+ * § 20 PHASE F — Full Customer Ledger View
+ * Tabbed modal: Overview · Transactions · Payments · Agreement
+ * Complete audit trail for each registered credit customer.
+ */
+
+// Active detail tab state
+const CL_DETAIL = { customerId: null, tab: 'overview' };
+
+function clOpenDetail(customerId) {
+  const c = (S.creditCustomers || []).find(x => x.id === customerId);
+  if (!c) return;
+  CL_DETAIL.customerId = customerId;
+  CL_DETAIL.tab        = 'overview';
+
+  const title = $('mcldet-title');
+  if (title) title.textContent = c.name;
+
+  clRenderDetailTab('overview');
+  openM('mcl-detail');
+}
+
+/** Switches tabs inside the customer detail modal */
+function clDetailTab(tab) {
+  CL_DETAIL.tab = tab;
+  clRenderDetailTab(tab);
+}
+
+/** Renders the selected tab content into mcl-detail-body */
+function clRenderDetailTab(tab) {
+  const c = (S.creditCustomers || []).find(x => x.id === CL_DETAIL.customerId);
+  if (!c) return;
+
+  const body  = $('mcl-detail-body');
+  const btns  = $('mcl-detail-btns');
+  if (!body) return;
+
+  const bal         = clGetBalance(c.id);
+  const score       = clTrustScore(c.id);
+  const scoreColor  = score >= 80 ? 'var(--gn)' : score >= 50 ? 'var(--am)' : 'var(--rd)';
+  const scoreLabel  = score >= 80 ? '⭐ TRUSTED' : score >= 50 ? '⚠️ RISKY' : '🚫 BAD';
+  const txns        = clTxnsFor(c.id);
+  const allPayments = (S.creditPayments || []).filter(p => p.customerId === c.id && !p._deleted);
+  const totalPaid   = allPayments.reduce((s, p) => s + p.amount, 0);
+  const isBlocked   = c.status === 'BLOCKED';
+
+  // ── Tab bar ─────────────────────────────────────────────────────────
+  const tabs = ['overview','transactions','payments','agreement'];
+  const tabLabels = { overview:'👤 Overview', transactions:'📋 Transactions', payments:'💰 Payments', agreement:'📄 Agreement' };
+  const tabBar = tabs.map(t => `
+    <button onclick="clDetailTab('${t}')"
+      style="flex:1;padding:7px 4px;border:none;font-size:11px;font-weight:700;cursor:pointer;
+             font-family:inherit;border-bottom:2px solid ${tab===t?'var(--gn)':'transparent'};
+             background:${tab===t?'var(--gnb)':'var(--sf2)'};color:${tab===t?'var(--gnt)':'var(--tx2)'};
+             transition:all .15s">
+      ${tabLabels[t]}
+    </button>`).join('');
+
+  // ── OVERVIEW TAB ─────────────────────────────────────────────────────
+  if (tab === 'overview') {
+    body.innerHTML = `
+      <div style="display:flex;border-radius:var(--rs);overflow:hidden;border:1px solid var(--bd);margin-bottom:12px">
+        ${tabBar}
+      </div>
+
+      <!-- Profile card -->
+      <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:10px;flex-wrap:wrap">
+        ${c.facePhoto
+          ? `<img src="data:image/jpeg;base64,${c.facePhoto}"
+               style="width:72px;height:72px;object-fit:cover;border-radius:var(--rs);
+                      border:2px solid var(--bd);flex-shrink:0"/>`
+          : `<div style="width:72px;height:72px;background:var(--sf2);border-radius:var(--rs);
+                         display:flex;align-items:center;justify-content:center;
+                         font-size:28px;flex-shrink:0;border:1px solid var(--bd)">👤</div>`}
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:800;font-size:16px">${esc(c.name)}</div>
+          <div style="font-size:12px;color:var(--tx2);margin-top:1px">📱 ${esc(c.contact)}</div>
+          <div style="font-size:12px;color:var(--tx2)">📍 ${esc(c.address)}</div>
+          ${c.idType ? `<div style="font-size:11px;color:var(--tx3)">🪪 ${esc(c.idType)}${c.idNumber?' · '+esc(c.idNumber):''}</div>` : ''}
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px">
+            <span class="badge" style="background:${isBlocked?'var(--rdb)':'var(--gnb)'};
+              color:${isBlocked?'var(--rdt)':'var(--gnt)'};font-size:10px">
+              ${isBlocked?'🚫 BLOCKED':'✅ ACTIVE'}
+            </span>
+            <span class="badge" style="background:var(--sf2);color:${scoreColor};font-weight:700;font-size:10px">
+              ${scoreLabel} ${score}%
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Credit stats grid -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
+        <div class="card" style="padding:8px;text-align:center">
+          <div style="font-size:10px;color:var(--tx2)">Balance</div>
+          <div style="font-size:16px;font-weight:800;color:${bal>0?'var(--rd)':'var(--gn)'}">₱${bal.toFixed(2)}</div>
+        </div>
+        <div class="card" style="padding:8px;text-align:center">
+          <div style="font-size:10px;color:var(--tx2)">Credit Limit</div>
+          <div style="font-size:16px;font-weight:800">₱${c.creditLimit.toFixed(2)}</div>
+          ${isAd()?`<button onclick="clEditLimit('${c.id}')"
+            style="font-size:10px;color:var(--pu);background:none;border:none;cursor:pointer;
+                   font-family:inherit;padding:0;margin-top:2px">✏️ Edit</button>`:''}
+        </div>
+        <div class="card" style="padding:8px;text-align:center">
+          <div style="font-size:10px;color:var(--tx2)">Total Paid</div>
+          <div style="font-size:16px;font-weight:800;color:var(--gn)">₱${totalPaid.toFixed(2)}</div>
+        </div>
+        <div class="card" style="padding:8px;text-align:center">
+          <div style="font-size:10px;color:var(--tx2)">Transactions</div>
+          <div style="font-size:16px;font-weight:800">${txns.length}</div>
+        </div>
+        <div class="card" style="padding:8px;text-align:center">
+          <div style="font-size:10px;color:var(--tx2)">Overdue</div>
+          <div style="font-size:16px;font-weight:800;color:var(--rd)">
+            ${txns.filter(t=>t.status==='OVERDUE').length}
+          </div>
+        </div>
+        <div class="card" style="padding:8px;text-align:center">
+          <div style="font-size:10px;color:var(--tx2)">Due Days</div>
+          <div style="font-size:16px;font-weight:800">${c.dueDays}d</div>
+        </div>
+      </div>
+
+      <!-- Credit limit bar -->
+      <div class="card" style="padding:8px 12px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--tx2);margin-bottom:4px">
+          <span>Credit used</span>
+          <span>${Math.min(100,(bal/c.creditLimit*100)).toFixed(0)}%</span>
+        </div>
+        <div style="background:var(--sf2);border-radius:4px;height:8px;overflow:hidden">
+          <div style="background:${bal/c.creditLimit>=0.8?'var(--am)':'var(--gn)'};
+                      height:100%;width:${Math.min(100,(bal/c.creditLimit)*100).toFixed(0)}%;
+                      border-radius:4px;transition:width .3s"></div>
+        </div>
+        <div style="font-size:10px;color:var(--tx3);margin-top:3px">
+          ₱${bal.toFixed(2)} of ₱${c.creditLimit.toFixed(2)} · 
+          Available: ₱${Math.max(0,c.creditLimit-bal).toFixed(2)}
+        </div>
+      </div>
+
+      <!-- Trust score breakdown -->
+      <div class="card" style="padding:8px 12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:12px;font-weight:700">Trust Score</span>
+          <span style="font-size:18px;font-weight:800;color:${scoreColor}">${score}%</span>
+        </div>
+        <div style="background:var(--sf2);border-radius:4px;height:6px;overflow:hidden;margin-bottom:4px">
+          <div style="background:${scoreColor};height:100%;width:${score}%;border-radius:4px"></div>
+        </div>
+        <div style="font-size:11px;color:var(--tx2)">
+          ${txns.filter(t=>t.status==='PAID').length} paid · 
+          ${txns.filter(t=>t.status==='OVERDUE').length} overdue · 
+          ${txns.filter(t=>t.status==='PARTIAL').length} partial ·
+          ${txns.filter(t=>t.status==='PENDING').length} pending
+        </div>
+        <div style="font-size:10px;color:var(--tx3);margin-top:2px">
+          Registered: ${new Date(c.createdAt).toLocaleDateString('en-PH')} by ${esc(c.createdBy||'admin')}
+        </div>
+      </div>`;
+  }
+
+  // ── TRANSACTIONS TAB ─────────────────────────────────────────────────
+  else if (tab === 'transactions') {
+    const rows = txns.length
+      ? txns.slice().reverse().map(t => {
+          const sc      = t.status==='PAID'?'var(--gn)':t.status==='RETURNED'?'var(--bl)':
+                          t.status==='OVERDUE'?'var(--rd)':t.status==='PARTIAL'?'var(--am)':'var(--tx2)';
+          const pays    = clPaymentsFor(t.id);
+          const paidAmt = pays.reduce((s,p)=>s+p.amount,0);
+          const preview = (t.items||[]).slice(0,2).map(i=>`${i.nm} ×${i.qty}`).join(', ')
+                        + ((t.items||[]).length > 2 ? ` +${t.items.length-2} more` : '');
+          const daysLate = t.status==='OVERDUE'
+            ? Math.floor((new Date()-new Date(t.dueDate))/86400000) : 0;
+          return `<div class="card" style="padding:9px 11px;font-size:12px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px">
+              <div>
+                <span style="font-weight:700">${new Date(t.date).toLocaleDateString('en-PH')}</span>
+                <span style="font-size:10px;color:var(--tx3);margin-left:5px">#${t.receiptCode||t.id.slice(-6)}</span>
+              </div>
+              <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+                <span style="color:${sc};font-weight:700;font-size:11px">${t.status}</span>
+                <button onclick="clViewTxnReceipt('${t.id}')"
+                  style="background:var(--blb);color:var(--blt);border:none;border-radius:3px;
+                         padding:1px 6px;font-size:10px;cursor:pointer;font-family:inherit">🧾</button>
+                ${t.status==='PENDING'||t.status==='PARTIAL'||t.status==='OVERDUE' ? `
+                <button onclick="clOpenPayment('${t.id}','${c.id}')"
+                  style="background:var(--gnb);color:var(--gnt);border:1px solid var(--gn);
+                         border-radius:3px;padding:1px 6px;font-size:10px;cursor:pointer;font-family:inherit">
+                  💰 Pay</button>` : ''}
+              </div>
+            </div>
+            ${preview?`<div style="color:var(--tx3);font-size:11px;margin-bottom:2px">${esc(preview)}</div>`:''}
+            <div style="display:flex;justify-content:space-between">
+              <span style="color:var(--tx2)">Total: <strong>₱${t.totalAmount.toFixed(2)}</strong></span>
+              <span style="color:${t.balanceRemaining>0?'var(--rd)':'var(--gn)'}">
+                Bal: <strong>₱${t.balanceRemaining.toFixed(2)}</strong>
+              </span>
+            </div>
+            ${t.penalty?`<div style="color:var(--am);font-size:11px">⚠️ Penalty: ₱${t.penalty.toFixed(2)}</div>`:''}
+            ${paidAmt>0?`<div style="color:var(--gn);font-size:11px">✅ Paid: ₱${paidAmt.toFixed(2)}</div>`:''}
+            <div style="font-size:10px;color:var(--tx3)">
+              Due: ${new Date(t.dueDate).toLocaleDateString('en-PH')}
+              ${daysLate>0?`<span style="color:var(--rd);font-weight:700"> · ${daysLate}d overdue</span>`:''}
+            </div>
+          </div>`;
+        }).join('')
+      : `<div style="text-align:center;padding:32px;color:var(--tx2)">
+           <div style="font-size:28px;margin-bottom:6px">📋</div>
+           No transactions yet
+         </div>`;
+
+    body.innerHTML = `
+      <div style="display:flex;border-radius:var(--rs);overflow:hidden;border:1px solid var(--bd);margin-bottom:12px">
+        ${tabBar}
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:12px;font-weight:700;color:var(--tx2)">${txns.length} transactions total</span>
+        ${bal>0?`<button class="btn bp" style="font-size:11px;padding:4px 10px"
+          onclick="clOpenPaymentMulti('${c.id}')">💰 Pay All</button>`:''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;max-height:360px;overflow-y:auto;
+                  -webkit-overflow-scrolling:touch">${rows}</div>`;
+  }
+
+  // ── PAYMENTS TAB ─────────────────────────────────────────────────────
+  else if (tab === 'payments') {
+    const rows = allPayments.length
+      ? allPayments.slice().sort((a,b)=>new Date(b.paymentDate)-new Date(a.paymentDate)).map(p => {
+          const txn = (S.creditTransactions||[]).find(x=>x.id===p.creditTxnId);
+          return `<div class="card" style="padding:9px 11px;font-size:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+              <span style="font-weight:700">${new Date(p.paymentDate).toLocaleDateString('en-PH')}</span>
+              <span style="font-size:16px;font-weight:800;color:var(--gn)">₱${p.amount.toFixed(2)}</span>
+            </div>
+            <div style="color:var(--tx2);font-size:11px">
+              ${p.paymentMethod?.toUpperCase()||'CASH'} · Received by: ${esc(p.receivedBy||'admin')}
+            </div>
+            ${p.change>0?`<div style="color:var(--tx2);font-size:11px">Change: ₱${p.change.toFixed(2)}</div>`:''}
+            ${txn?`<div style="color:var(--tx3);font-size:10px">
+              Txn: #${txn.receiptCode||txn.id.slice(-6)} · 
+              ${new Date(txn.date).toLocaleDateString('en-PH')}
+            </div>`:''}
+            ${p.batchPayment?`<span style="font-size:10px;color:var(--pu)">Batch payment</span>`:''}
+          </div>`;
+        }).join('')
+      : `<div style="text-align:center;padding:32px;color:var(--tx2)">
+           <div style="font-size:28px;margin-bottom:6px">💰</div>
+           No payments recorded yet
+         </div>`;
+
+    body.innerHTML = `
+      <div style="display:flex;border-radius:var(--rs);overflow:hidden;border:1px solid var(--bd);margin-bottom:12px">
+        ${tabBar}
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:12px;font-weight:700;color:var(--tx2)">${allPayments.length} payments · Total: ₱${totalPaid.toFixed(2)}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;max-height:360px;overflow-y:auto;
+                  -webkit-overflow-scrolling:touch">${rows}</div>`;
+  }
+
+  // ── AGREEMENT TAB ────────────────────────────────────────────────────
+  else if (tab === 'agreement') {
+    const hasContract = c.facePhoto && c.sigPhoto && c.agreementHtml;
+    body.innerHTML = `
+      <div style="display:flex;border-radius:var(--rs);overflow:hidden;border:1px solid var(--bd);margin-bottom:12px">
+        ${tabBar}
+      </div>
+      ${!hasContract
+        ? `<div style="text-align:center;padding:32px;color:var(--tx2)">
+             <div style="font-size:28px;margin-bottom:6px">📄</div>
+             <div style="font-weight:600">No signed agreement on file</div>
+             <div style="font-size:12px;margin-top:4px">
+               Register the customer with photos to generate an agreement.
+             </div>
+           </div>`
+        : `<div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+             ${c.facePhoto?`<div style="text-align:center">
+               <img src="data:image/jpeg;base64,${c.facePhoto}"
+                 style="width:80px;height:80px;object-fit:cover;border-radius:var(--rs);
+                        border:2px solid var(--bd)"/>
+               <div style="font-size:10px;color:var(--tx3);margin-top:3px">Photo</div>
+             </div>`:''}
+             ${c.sigPhoto?`<div style="text-align:center">
+               <img src="data:image/jpeg;base64,${c.sigPhoto}"
+                 style="width:80px;height:80px;object-fit:cover;border-radius:var(--rs);
+                        border:2px solid var(--bd)"/>
+               <div style="font-size:10px;color:var(--tx3);margin-top:3px">Signature</div>
+             </div>`:''}
+             <div style="flex:1;min-width:140px;font-size:12px;color:var(--tx2)">
+               <div>Registered: <strong>${new Date(c.createdAt).toLocaleDateString('en-PH')}</strong></div>
+               <div>By: <strong>${esc(c.createdBy||'admin')}</strong></div>
+               <div>Due terms: <strong>${c.dueDays} days</strong></div>
+               <div>Agreed: <strong>${new Date(c.agreementDate).toLocaleDateString('en-PH')}</strong></div>
+             </div>
+           </div>
+           <div class="al alg" style="font-size:11px;margin-bottom:10px">
+             ✅ Signed agreement on file · Valid under Philippine Civil Code
+           </div>
+           <div style="display:flex;gap:7px">
+             <button class="btn bp bs" onclick="clViewContract('${c.id}')" style="flex:1">
+               📄 View Full Contract
+             </button>
+           </div>`
+      }`;
+  }
+
+  // ── Action buttons (common to all tabs) ──────────────────────────────
+  if (btns) btns.innerHTML = `
+    <button class="btn" onclick="closeM('mcl-detail')">Close</button>
+    ${isBlocked
+      ? `<button class="btn bs bo_" onclick="clUnblock('${c.id}')">🔓 Unblock</button>`
+      : `<button class="btn bd bs" onclick="clBlock('${c.id}')">🚫 Block</button>`}
+    ${bal > 0
+      ? `<button class="btn bp" onclick="clOpenPaymentMulti('${c.id}')">💰 Pay All</button>`
+      : ''}`;
+}
+
+/** Opens a printable contract window for the customer */
+/**
+ * Opens the in-app contract viewer for a registered credit customer.
+ * Features: scroll, print (browser print-to-PDF), download as JPEG image.
+ * No pop-up window needed — works on mobile too.
+ */
+function clViewContract(customerId) {
+  const c = (S.creditCustomers || []).find(x => x.id === customerId);
+  if (!c) return;
+
+  // Store current customer id for print/download functions
+  clViewContract._cid = customerId;
+
+  // Set title
+  const titleEl = $('mcl-contract-title');
+  if (titleEl) titleEl.textContent = `📄 Credit Agreement — ${c.name}`;
+
+  // Build full contract HTML including photos
+  const registeredDate = new Date(c.createdAt).toLocaleDateString('en-PH', {
+    year: 'numeric', month: 'long', day: 'numeric'
+  });
+
+  const bodyEl = $('mcl-contract-body');
+  if (!bodyEl) return;
+
+  bodyEl.innerHTML = `
+    ${c.agreementHtml || '<p style="color:#c00">Agreement text not available for this customer.</p>'}
+
+    <!-- Photos section -->
+    <div style="border-top:2px solid #000;margin-top:24px;padding-top:20px">
+      <div style="text-align:center;font-weight:700;font-size:13px;margin-bottom:16px;text-decoration:underline">
+        IDENTIFICATION & SIGNATURE
+      </div>
+      <div style="display:flex;gap:30px;justify-content:center;flex-wrap:wrap">
+        <div style="text-align:center">
+          ${c.facePhoto
+            ? `<img src="data:image/jpeg;base64,${c.facePhoto}"
+                style="width:140px;height:140px;object-fit:cover;border:2px solid #000;border-radius:4px;display:block"/>`
+            : `<div style="width:140px;height:140px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;font-size:11px;color:#999">No photo</div>`}
+          <div style="font-size:11px;margin-top:6px;font-style:italic">Customer's Photo</div>
+        </div>
+        <div style="text-align:center">
+          ${c.sigPhoto
+            ? `<img src="data:image/jpeg;base64,${c.sigPhoto}"
+                style="width:140px;height:140px;object-fit:cover;border:2px solid #000;border-radius:4px;display:block"/>`
+            : `<div style="width:140px;height:140px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;font-size:11px;color:#999">No signature</div>`}
+          <div style="font-size:11px;margin-top:6px;font-style:italic">Customer's Signature</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Registration footer -->
+    <div style="border-top:1px solid #ccc;margin-top:24px;padding-top:12px;text-align:center;font-size:11px;color:#666">
+      <div>Date Registered: <strong>${registeredDate}</strong></div>
+      <div>Registered by: <strong>${esc(c.createdBy || 'admin')}</strong></div>
+      <div>Customer ID: <code style="font-size:10px">${c.id}</code></div>
+      <div style="margin-top:8px;font-size:10px;color:#999">
+        This document is valid under the Civil Code of the Philippines (Art. 1305–1317).<br>
+        Personal data protected under RA 10173 (Data Privacy Act of 2012).
+      </div>
+    </div>`;
+
+  openM('mcl-contract');
+}
+
+/**
+ * Triggers the browser's native print dialog.
+ * User can choose "Save as PDF" from print dialog — works on all devices.
+ * Print CSS hides the toolbar so only the contract body prints.
+ */
+function clContractPrint() {
+  const bodyEl = $('mcl-contract-body');
+  if (!bodyEl) return;
+
+  // Inject a print-specific style if not already present
+  const styleId = 'cl-print-style';
+  if (!document.getElementById(styleId)) {
+    const s = document.createElement('style');
+    s.id = styleId;
+    s.textContent = `
+      @media print {
+        body > *:not(#mcl-contract) { display: none !important; }
+        #mcl-contract { display: flex !important; position: static !important;
+          background: #fff !important; padding: 0 !important; }
+        #mcl-contract .mo { max-width: 100% !important; width: 100% !important;
+          border-radius: 0 !important; box-shadow: none !important; }
+        #mcl-contract > div > div:first-child,
+        #mcl-contract > div > div:last-child { display: none !important; }
+        #mcl-contract-body { max-height: none !important; overflow: visible !important;
+          padding: 20px !important; font-size: 12px !important; }
+      }`;
+    document.head.appendChild(s);
+  }
+
+  window.print();
+}
+
+/**
+ * Downloads the contract as a JPEG image using canvas.
+ * Draws the contract body text + photos onto a canvas, then triggers download.
+ * Works fully offline — no external library needed.
+ */
+async function clContractDownloadImg() {
+  const customerId = clViewContract._cid;
+  if (!customerId) return;
+  const c = (S.creditCustomers || []).find(x => x.id === customerId);
+  if (!c) return;
+
+  const btn = document.querySelector('[onclick="clContractDownloadImg()"]');
+  const origText = btn?.textContent;
+  if (btn) { btn.textContent = '⏳ Generating…'; btn.disabled = true; }
+
+  try {
+    // Create an off-screen container to render the contract
+    const container = document.createElement('div');
+    container.style.cssText = `
+      position:fixed; left:-9999px; top:0;
+      width:620px; background:#fff; color:#000;
+      font-family:Georgia,serif; font-size:13px;
+      line-height:1.8; padding:40px;
+    `;
+    container.innerHTML = $('mcl-contract-body').innerHTML;
+    document.body.appendChild(container);
+
+    // Wait for images to load
+    const images = Array.from(container.querySelectorAll('img'));
+    await Promise.all(images.map(img =>
+      img.complete ? Promise.resolve() : new Promise(res => { img.onload = res; img.onerror = res; })
+    ));
+
+    // Use html2canvas approach — draw manually onto canvas
+    const canvas  = document.createElement('canvas');
+    const scale   = 2; // retina quality
+    const width   = 620;
+    const height  = container.scrollHeight + 80;
+    canvas.width  = width  * scale;
+    canvas.height = height * scale;
+    const ctx     = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+
+    // White background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+
+    // Draw text content using foreignObject approach via SVG
+    const svgData = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+        <foreignObject width="${width}" height="${height}">
+          <div xmlns="http://www.w3.org/1999/xhtml"
+            style="width:${width}px;background:#fff;padding:40px;font-family:Georgia,serif;
+                   font-size:13px;line-height:1.8;color:#000;box-sizing:border-box">
+            ${container.innerHTML}
+          </div>
+        </foreignObject>
+      </svg>`;
+
+    const img = new Image();
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+      img.src = url;
+    });
+
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    document.body.removeChild(container);
+
+    // Trigger download
+    const link     = document.createElement('a');
+    const filename = `credit-agreement-${(c.name || 'customer').replace(/\s+/g,'-').toLowerCase()}-${new Date().toISOString().slice(0,10)}.jpg`;
+    link.download  = filename;
+    link.href      = canvas.toDataURL('image/jpeg', 0.95);
+    link.click();
+
+    showNotif('✅ Contract downloaded as image.');
+  } catch(err) {
+    console.warn('[Contract] Image export error:', err);
+    // Fallback — offer print-to-PDF instead
+    showNotif('⚠️ Image export failed. Use Print → Save as PDF instead.');
+    clContractPrint();
+  } finally {
+    if (btn) { btn.textContent = origText; btn.disabled = false; }
+  }
+}
+
+/**
+ * Regenerates and displays the receipt for a credit transaction.
+ * Opens a printable window — same format as the original checkout receipt.
+ * @param {string} txnId - Credit transaction ID
+ */
+function clViewTxnReceipt(txnId) {
+  const t = (S.creditTransactions || []).find(x => x.id === txnId);
+  if (!t) return;
+  const c  = (S.creditCustomers || []).find(x => x.id === t.customerId);
+  const ss = S.settings || {};
+  const ln = '================================';
+  const ctr = (s, w = 32) => ' '.repeat(Math.max(0, Math.floor((w - s.length) / 2))) + s;
+  const payments = clPaymentsFor(t.id);
+  const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
+
+  let r = `${ln}\n${ctr(ss.storeName || "Kyrie's")}\n`;
+  if (ss.address) r += `${ctr(ss.address)}\n`;
+  if (ss.contact) r += `${ctr(ss.contact)}\n`;
+  r += `${ln}\n*** CREDIT / UTANG TRANSACTION ***\n${ln}\n`;
+  r += `Date:     ${new Date(t.date).toLocaleDateString('en-PH')}\n`;
+  r += `Receipt:  #${t.receiptCode || t.id}\n`;
+  r += `Cashier:  ${t.createdBy || ''}\n${ln}\n`;
+  r += `Customer: ${t.customerName || (c?.name || '')}\n`;
+  if (c?.contact) r += `Contact:  ${c.contact}\n`;
+  r += `${ln}\n`;
+  (t.items || []).forEach(i => {
+    r += `${i.nm}\n  ${i.qty} x ${peso(i.price)} = ${peso(i.price * i.qty)}\n`;
+  });
+  r += `${ln}\n`;
+  r += `TOTAL:       ${peso(t.totalAmount)}\n`;
+  r += `PAID:        ${peso(totalPaid)}\n`;
+  r += `BALANCE:     ${peso(t.balanceRemaining)}\n`;
+  if (t.penalty) r += `PENALTY:     ${peso(t.penalty)}\n`;
+  r += `STATUS:      ${t.status}\n`;
+  r += `DUE DATE:    ${new Date(t.dueDate).toLocaleDateString('en-PH')}\n`;
+  r += `${ln}\n${ctr('UTANG - BAYARAN AGAD!')}\n`;
+  r += `${ctr(`Due: ${new Date(t.dueDate).toLocaleDateString('en-PH')}`)}\n${ln}\n`;
+  r += `${ctr(ss.footer || 'Thank you!')}`;
+
+  // Use the existing print helper — no pop-up restrictions
+  _printReceipt(r);
+}
+
+/** Manually blocks a customer */
+function clBlock(customerId) {
+  const c = (S.creditCustomers || []).find(x => x.id === customerId);
+  if (!c) return;
+  if (!confirm(`Block ${c.name} from credit? They will not be able to make any credit transactions.`)) return;
+  c.status    = 'BLOCKED';
+  c.blockedAt = new Date().toISOString();
+  c._updatedAt = new Date().toISOString();
+  dataStore._persist();
+  closeM('mcl-detail');
+  clRenderLedger();
+  showNotif(`🚫 ${c.name} has been blocked from credit.`);
+}
+
+/** Manually unblocks a customer */
+function clUnblock(customerId) {
+  const c = (S.creditCustomers || []).find(x => x.id === customerId);
+  if (!c) return;
+  c.status     = 'ACTIVE';
+  c.blockedAt  = null;
+  c._updatedAt = new Date().toISOString();
+  dataStore._persist();
+  closeM('mcl-detail');
+  clRenderLedger();
+  showNotif(`✅ ${c.name} has been unblocked.`);
+}
+
+/** Admin: edit a customer's credit limit inline */
+function clEditLimit(customerId) {
+  const c = (S.creditCustomers || []).find(x => x.id === customerId);
+  if (!c) return;
+  const current = c.creditLimit;
+  const input   = prompt(
+    `Edit credit limit for ${c.name}\n\nCurrent limit: ₱${current.toFixed(2)}\n\nEnter new limit (₱):`,
+    current.toFixed(2)
+  );
+  if (input === null) return; // cancelled
+  const newLimit = parseFloat(input);
+  if (isNaN(newLimit) || newLimit < 50) {
+    alert('❌ Invalid limit. Minimum is ₱50.'); return;
+  }
+  c.creditLimit  = newLimit;
+  c._updatedAt   = new Date().toISOString();
+  dataStore._persist();
+  clRenderLedger();
+  clOpenDetail(customerId); // refresh detail view
+  showNotif(`✅ Credit limit for ${c.name} updated to ₱${newLimit.toFixed(2)}`);
+}
+
+// ── RUN ENGINE ON APP LOAD + LOGIN ───────────────────────────────────
+// Runs silently after every login — checks overdue, applies penalties, auto-blocks
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => { if (CU) { clRunEngine(); updBadge(); renderNotifPanel(); } }, 2000);
+});
+
+console.log('[§ 20] Credit / Utang System loaded ✅ — KPOS.V7.1.F2');
+
+// ── § 20 PHASE E — CASHIER POS INDICATORS ───────────────────────────
+
+/**
+ * Renders the credit alert strip at the top of the POS panel.
+ * Visible to BOTH cashier and admin.
+ * Shows blocked customers + overdue customers as compact pills.
+ * Called on POS tab open and after every credit-related action.
+ */
+function clRenderPOSStrip() {
+  const strip = $('pos-credit-strip');
+  if (!strip) return;
+
+  const customers = clActiveCustomers();
+  if (!customers.length) { strip.style.display = 'none'; return; }
+
+  const blocked  = customers.filter(c => c.status === 'BLOCKED');
+  const overdue  = customers.filter(c =>
+    c.status !== 'BLOCKED' && clTxnsFor(c.id).some(t => t.status === 'OVERDUE')
+  );
+
+  if (!blocked.length && !overdue.length) { strip.style.display = 'none'; return; }
+
+  strip.style.display = 'block';
+  const pills = [];
+
+  if (blocked.length) {
+    pills.push(`<div style="display:inline-flex;align-items:center;gap:5px;
+        background:var(--rdb);border:1px solid var(--rd);border-radius:20px;
+        padding:4px 10px;font-size:12px;font-weight:700;color:var(--rdt)">
+      🚫 ${blocked.length} blocked: ${blocked.slice(0,2).map(c=>esc(c.name)).join(', ')}${blocked.length>2?` +${blocked.length-2}`:''}
+    </div>`);
+  }
+
+  if (overdue.length) {
+    pills.push(`<div style="display:inline-flex;align-items:center;gap:5px;
+        background:var(--amb);border:1px solid var(--am);border-radius:20px;
+        padding:4px 10px;font-size:12px;font-weight:700;color:var(--amt)">
+      ⚠️ ${overdue.length} overdue: ${overdue.slice(0,2).map(c=>esc(c.name)).join(', ')}${overdue.length>2?` +${overdue.length-2}`:''}
+    </div>`);
+  }
+
+  strip.innerHTML = `
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <span style="font-size:11px;color:var(--tx3);font-weight:700">CREDIT ALERTS:</span>
+      ${pills.join('')}
+    </div>`;
+}
+
+/**
+ * Hook: render POS credit strip whenever POS tab is opened.
+ * Wraps the existing switchTab render call for 'pos'.
+ */
+// § 20E: clRenderPOSStrip() is called directly in switchTab and after payment actions
+
+/**
+ * Enhanced customer picker row — adds unmissable warning banner
+ * ABOVE the confirm button when a blocked or overdue customer is selected.
+ * Overrides clPickCreditCustomer to inject the warning.
+ */
+function clPickCreditCustomerWarnings(customerId, tot) {
+  clPickCreditCustomer(customerId, tot);
+
+  // Inject strong cashier warning if customer has issues
+  const c       = clActiveCustomers().find(x => x.id === customerId);
+  if (!c) return;
+
+  const warnEl  = $('mclco-warn');
+  if (!warnEl) return;
+
+  const warns   = [];
+  const overdue = clTxnsFor(c.id).filter(t => t.status === 'OVERDUE');
+
+  if (c.status === 'BLOCKED') {
+    warns.push(`
+      <div style="background:var(--rdb);border:2px solid var(--rd);border-radius:var(--rs);
+                  padding:10px 12px;margin-bottom:6px">
+        <div style="font-weight:800;font-size:14px;color:var(--rdt)">🚫 BLOCKED CUSTOMER</div>
+        <div style="font-size:12px;color:var(--rdt);margin-top:3px;line-height:1.5">
+          ${esc(c.name)} is blocked from credit due to non-payment.<br>
+          <strong>Do NOT allow any utang transaction.</strong> Inform the customer to settle their balance first.
+        </div>
+        ${c.blockedAt ? `<div style="font-size:11px;color:var(--rdt);opacity:.7;margin-top:4px">Blocked: ${new Date(c.blockedAt).toLocaleDateString('en-PH')}</div>` : ''}
+      </div>`);
+  }
+
+  if (overdue.length > 0) {
+    const overAmt = overdue.reduce((s, t) => s + t.balanceRemaining, 0);
+    const oldest  = overdue.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))[0];
+    const daysLate = Math.floor((new Date() - new Date(oldest.dueDate)) / 86400000);
+    warns.push(`
+      <div style="background:var(--amb);border:1.5px solid var(--am);border-radius:var(--rs);
+                  padding:10px 12px;margin-bottom:6px">
+        <div style="font-weight:700;font-size:13px;color:var(--amt)">⚠️ OVERDUE PAYMENT</div>
+        <div style="font-size:12px;color:var(--amt);margin-top:3px;line-height:1.5">
+          ${esc(c.name)} has <strong>${overdue.length} overdue transaction${overdue.length > 1 ? 's' : ''}</strong>
+          totalling <strong>₱${overAmt.toFixed(2)}</strong>.<br>
+          Oldest overdue: <strong>${daysLate} day${daysLate !== 1 ? 's' : ''} late</strong>.
+          Remind customer to pay before adding more utang.
+        </div>
+      </div>`);
+  }
+
+  // Prepend warnings to existing warn element content
+  if (warns.length) {
+    warnEl.innerHTML = warns.join('') + warnEl.innerHTML;
+  }
+}
+
+/**
+ * Shows credit status of a customer in the POS scan message area.
+ * Called when a cashier types a name and a match is a known credit customer.
+ * Purely informational — does not block the regular POS flow.
+ */
+function clCheckPOSCustomerStatus(name) {
+  if (!name || !name.trim()) return;
+  const match = clActiveCustomers().find(c =>
+    c.name.toLowerCase().includes(name.toLowerCase())
+  );
+  if (!match) return;
+
+  const bal     = clGetBalance(match.id);
+  const blocked = match.status === 'BLOCKED';
+  const overdue = clTxnsFor(match.id).some(t => t.status === 'OVERDUE');
+
+  if (!blocked && !overdue && bal <= 0) return; // all good — no need to show anything
+
+  const color = blocked ? 'alr' : overdue ? 'ala' : 'alb';
+  const msg   = blocked
+    ? `🚫 ${match.name} is BLOCKED from credit — balance ₱${bal.toFixed(2)}`
+    : overdue
+      ? `⚠️ ${match.name} has OVERDUE utang — ₱${bal.toFixed(2)} outstanding`
+      : `📒 ${match.name} has ₱${bal.toFixed(2)} outstanding utang`;
+
+  showMsg('scmsg', msg, color);
+}
+
+// § 20E: credit status check is called directly in scanItem via clCheckPOSCustomerStatus
+
+// ── § 20 PHASE D — OVERDUE + AUTO-BLOCK UI ALERTS ───────────────────
+
+/**
+ * Renders the alert banner inside the Debt Ledger tab.
+ * Called by clRenderLedger() every time the tab opens.
+ * Shows actionable summaries — overdue, blocked, near-limit.
+ */
+function clRenderAlertBanner() {
+  const banner = $('cl-alert-banner');
+  if (!banner) return;
+
+  clRunEngine(); // always fresh before rendering
+
+  const customers  = clActiveCustomers();
+  const overdue    = customers.filter(c => clTxnsFor(c.id).some(t => t.status === 'OVERDUE'));
+  const blocked    = customers.filter(c => c.status === 'BLOCKED');
+  const nearLimit  = customers.filter(c => {
+    if (c.status === 'BLOCKED') return false;
+    const pct = c.creditLimit > 0 ? clGetBalance(c.id) / c.creditLimit : 0;
+    return pct >= 0.8 && !clTxnsFor(c.id).some(t => t.status === 'OVERDUE');
+  });
+
+  if (!overdue.length && !blocked.length && !nearLimit.length) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  banner.style.display = 'block';
+  const alerts = [];
+
+  if (overdue.length) {
+    const totalAmt = overdue.reduce((s, c) =>
+      s + clTxnsFor(c.id).filter(t => t.status === 'OVERDUE')
+        .reduce((ss, t) => ss + t.balanceRemaining, 0), 0
+    );
+    alerts.push(`
+      <div style="background:var(--rdb);border:1px solid var(--rd);border-radius:var(--rs);
+                  padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div>
+          <span style="font-weight:700;color:var(--rdt)">🚨 ${overdue.length} overdue customer${overdue.length > 1 ? 's' : ''}</span>
+          <span style="font-size:12px;color:var(--rdt);margin-left:6px">— ₱${totalAmt.toFixed(2)} outstanding</span>
+          <div style="font-size:11px;color:var(--rdt);opacity:.8;margin-top:2px">
+            ${overdue.slice(0, 3).map(c => esc(c.name)).join(' · ')}${overdue.length > 3 ? ` +${overdue.length - 3} more` : ''}
+          </div>
+        </div>
+        <button class="btn bs" style="font-size:11px;flex-shrink:0;color:var(--rdt);border-color:var(--rd)"
+          onclick="$('cl-filter').value='overdue';clRenderLedger()">Filter →</button>
+      </div>`);
+  }
+
+  if (blocked.length) {
+    alerts.push(`
+      <div style="background:var(--amb);border:1px solid var(--am);border-radius:var(--rs);
+                  padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div>
+          <span style="font-weight:700;color:var(--amt)">🚫 ${blocked.length} customer${blocked.length > 1 ? 's' : ''} blocked</span>
+          <div style="font-size:11px;color:var(--amt);opacity:.8;margin-top:2px">
+            ${blocked.slice(0, 3).map(c => esc(c.name)).join(' · ')}${blocked.length > 3 ? ` +${blocked.length - 3} more` : ''}
+          </div>
+        </div>
+        <button class="btn bs" style="font-size:11px;flex-shrink:0;color:var(--amt);border-color:var(--am)"
+          onclick="$('cl-filter').value='blocked';clRenderLedger()">Filter →</button>
+      </div>`);
+  }
+
+  if (nearLimit.length) {
+    alerts.push(`
+      <div style="background:var(--blb);border:1px solid var(--bl);border-radius:var(--rs);
+                  padding:10px 12px">
+        <span style="font-weight:700;color:var(--blt)">⚠️ ${nearLimit.length} customer${nearLimit.length > 1 ? 's' : ''} near credit limit (≥80%)</span>
+        <div style="font-size:11px;color:var(--blt);opacity:.8;margin-top:2px">
+          ${nearLimit.slice(0, 3).map(c => {
+            const pct = Math.round((clGetBalance(c.id) / c.creditLimit) * 100);
+            return `${esc(c.name)} (${pct}%)`;
+          }).join(' · ')}${nearLimit.length > 3 ? ` +${nearLimit.length - 3} more` : ''}
+        </div>
+      </div>`);
+  }
+
+  banner.innerHTML = `<div style="display:flex;flex-direction:column;gap:6px">${alerts.join('')}</div>`;
+}
+
+// ── HOOK INTO clRenderLedger ─────────────────────────────────────────
+// Override to call alert banner render — non-breaking extension pattern
+// § 20D+E: clRenderLedger is the real function defined above — NOT overriding it.
+// Instead, clRenderAlertBanner() and clRenderPOSStrip() are called explicitly
+// at the END of the real clRenderLedger function body.
+
+// ── DAILY ENGINE RUNNER ──────────────────────────────────────────────
+// Runs clRunEngine every hour while app is open (catches daily overdue)
+setInterval(() => {
+  if (CU) {
+    clRunEngine();
+    updBadge();
+    renderNotifPanel();
+  }
+}, 3600000); // every 1 hour
+
+// ── § 20 PHASE C — PAYMENT RECORDING (multi-transaction) ─────────────
+
+// Active payment state
+const CL_PAY = {
+  customerId: null,
+  method:     'cash',
+  // _selectedTxnIds managed via checkbox DOM
+};
+
+/**
+ * Opens payment modal from a single transaction's Pay button.
+ * Pre-selects that transaction, others can be added.
+ */
+function clOpenPayment(txnId, customerId) {
+  clOpenPaymentMulti(customerId, txnId);
+}
+
+/**
+ * Opens payment modal for all open transactions of a customer.
+ * @param {string} customerId  - Customer ID
+ * @param {string} [preTxnId] - Optional: pre-select a specific txn
+ */
+function clOpenPaymentMulti(customerId, preTxnId) {
+  const cust = (S.creditCustomers || []).find(x => x.id === customerId);
+  if (!cust) return;
+
+  CL_PAY.customerId = customerId;
+  CL_PAY.method     = 'cash';
+
+  // Get all open transactions
+  const openTxns = clTxnsFor(customerId).filter(
+    t => t.status === 'PENDING' || t.status === 'PARTIAL' || t.status === 'OVERDUE'
+  );
+
+  if ($('mclpay-subtitle'))
+    $('mclpay-subtitle').textContent = `${cust.name} · ${openTxns.length} open transaction${openTxns.length !== 1 ? 's' : ''}`;
+
+  // Build transaction checkbox list
+  const listEl = $('mclpay-txn-list');
+  if (listEl) {
+    if (!openTxns.length) {
+      listEl.innerHTML = `<div style="text-align:center;padding:16px;color:var(--tx2);font-size:13px">
+        ✅ No open transactions — all paid!
+      </div>`;
+    } else {
+      listEl.innerHTML = openTxns.map(t => {
+        const statusColor = t.status === 'OVERDUE' ? 'var(--rd)' : t.status === 'PARTIAL' ? 'var(--am)' : 'var(--tx2)';
+        const isPreSel    = !preTxnId || t.id === preTxnId; // pre-select all if opened from "Pay All", or just the one
+        const totalPaid   = clPaymentsFor(t.id).reduce((s, p) => s + p.amount, 0);
+        return `<label style="display:flex;gap:8px;align-items:center;background:var(--sf2);
+                              border:1px solid var(--bd);border-radius:var(--rs);padding:7px 10px;
+                              cursor:pointer;font-size:12px;transition:background .1s">
+          <input type="checkbox" data-txnid="${t.id}" data-bal="${t.balanceRemaining}"
+            style="width:14px;height:14px;flex-shrink:0;accent-color:var(--gn)"
+            data-pen="${t.penalty || 0}" ${isPreSel ? 'checked' : ''}
+            onchange="clPayUpdateSummary()" style="margin-top:1px;flex-shrink:0"/>
+          <div style="flex:1;min-width:0;overflow:hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
+              <span style="font-weight:700;font-size:12px">#${t.receiptCode||t.id.slice(-6)}</span>
+              <span style="color:${statusColor};font-weight:700;font-size:10px;background:var(--sf);
+                           border-radius:10px;padding:1px 6px">${t.status}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--tx2);margin-top:1px">
+              <span>${new Date(t.date).toLocaleDateString('en-PH')} · Due ${new Date(t.dueDate).toLocaleDateString('en-PH')}</span>
+              <span style="color:var(--rd);font-weight:700">${peso(t.balanceRemaining)}</span>
+            </div>
+            ${t.penalty?`<span style="color:var(--am);font-size:10px">+${peso(t.penalty)} penalty</span>`:''}
+          </div>
+        </label>`;
+      }).join('');
+    }
+  }
+
+  // Reset amount + calc
+  if ($('mclpay-amount')) $('mclpay-amount').value = '';
+  if ($('mclpay-calc'))   $('mclpay-calc').style.display   = 'none';
+  if ($('mclpay-msg'))    $('mclpay-msg').innerHTML        = '';
+
+  clPaySetMethod('cash');
+  clPayUpdateSummary(); // computes totals from checked boxes
+  openM('mcl-payment');
+  setTimeout(() => { if ($('mclpay-amount')) $('mclpay-amount').focus(); }, 250);
+}
+
+/** Updates combined total from checked transaction checkboxes */
+function clPayUpdateSummary() {
+  const boxes     = Array.from(document.querySelectorAll('#mclpay-txn-list input[type=checkbox]'));
+  const checked   = boxes.filter(b => b.checked);
+  const totalBal  = checked.reduce((s, b) => s + parseFloat(b.dataset.bal  || 0), 0);
+  const totalPen  = checked.reduce((s, b) => s + parseFloat(b.dataset.pen  || 0), 0);
+
+  if ($('mclpay-sel-count')) $('mclpay-sel-count').textContent = checked.length;
+  if ($('mclpay-balance'))   $('mclpay-balance').textContent   = peso(totalBal);
+
+  const penRow = $('mclpay-penalty-row');
+  if (penRow) penRow.style.display = totalPen > 0 ? 'flex' : 'none';
+  if ($('mclpay-penalty')) $('mclpay-penalty').textContent = peso(totalPen);
+
+  // Quick buttons
+  const quickEl = $('mclpay-quick-btns');
+  if (quickEl && totalBal > 0) {
+    const q50 = parseFloat((totalBal * 0.5).toFixed(2));
+    quickEl.innerHTML = `
+      <button class="btn bs" style="font-size:11px" onclick="clPayQuick(${q50})">50% · ${peso(q50)}</button>
+      <button class="btn bp" style="font-size:11px" onclick="clPayQuick(${totalBal})">Full · ${peso(totalBal)}</button>`;
+  } else if (quickEl) {
+    quickEl.innerHTML = '';
+  }
+
+  // Disable confirm if nothing selected or no balance
+  const btn = $('mclpay-confirm-btn');
+  if (btn) btn.disabled = checked.length === 0 || totalBal <= 0;
+
+  clPayCalc();
+}
+
+/** Selects or deselects all transaction checkboxes */
+function clPaySelectAll(checked) {
+  document.querySelectorAll('#mclpay-txn-list input[type=checkbox]')
+    .forEach(b => { b.checked = checked; });
+  clPayUpdateSummary();
+}
+
+/** Sets payment method and updates button styles */
+function clPaySetMethod(method) {
+  CL_PAY.method = method;
+  const cashBtn  = $('mclpay-meth-cash');
+  const gcashBtn = $('mclpay-meth-gcash');
+  if (cashBtn)  cashBtn.className  = method === 'cash'  ? 'btn bp bs' : 'btn bs';
+  if (gcashBtn) gcashBtn.className = method === 'gcash' ? 'btn bp bs' : 'btn bs';
+}
+
+/** Sets a quick amount */
+function clPayQuick(amount) {
+  const el = $('mclpay-amount');
+  if (el) { el.value = amount.toFixed(2); clPayCalc(); }
+}
+
+/** Live calculator as user types */
+function clPayCalc() {
+  const boxes    = Array.from(document.querySelectorAll('#mclpay-txn-list input[type=checkbox]'));
+  const totalBal = boxes.filter(b => b.checked)
+    .reduce((s, b) => s + parseFloat(b.dataset.bal || 0), 0);
+
+  const received = parseFloat($('mclpay-amount')?.value) || 0;
+  const calcEl   = $('mclpay-calc');
+
+  if (received <= 0 || totalBal <= 0) {
+    if (calcEl) calcEl.style.display = 'none';
+    return;
+  }
+
+  if (calcEl) calcEl.style.display = 'block';
+  if ($('mclpay-calc-recv')) $('mclpay-calc-recv').textContent = peso(received);
+
+  const change    = Math.max(0, received - totalBal);
+  const remaining = Math.max(0, totalBal - received);
+
+  const changeRow = $('mclpay-change-row');
+  const remRow    = $('mclpay-remaining-row');
+  if (changeRow) changeRow.style.display = change    > 0 ? 'flex' : 'none';
+  if (remRow)    remRow.style.display    = remaining > 0 ? 'flex' : 'none';
+  if ($('mclpay-calc-change'))    $('mclpay-calc-change').textContent    = peso(change);
+  if ($('mclpay-calc-remaining')) $('mclpay-calc-remaining').textContent = peso(remaining);
+}
+
+/**
+ * Confirms and saves payments for all selected transactions.
+ * Distributes received amount across selected transactions oldest-first.
+ * Generates one combined receipt.
+ */
+function clConfirmPayment() {
+  const cust = (S.creditCustomers || []).find(x => x.id === CL_PAY.customerId);
+  if (!cust) return;
+
+  const received = parseFloat($('mclpay-amount')?.value) || 0;
+  if (received <= 0) {
+    showMsg('mclpay-msg', '❌ Enter an amount greater than ₱0.', 'alr');
+    return;
+  }
+
+  // Get selected transaction IDs from checkboxes
+  const selectedIds = Array.from(
+    document.querySelectorAll('#mclpay-txn-list input[type=checkbox]:checked')
+  ).map(b => b.dataset.txnid);
+
+  if (!selectedIds.length) {
+    showMsg('mclpay-msg', '❌ Select at least one transaction.', 'alr');
+    return;
+  }
+
+  const txns    = selectedIds.map(id => (S.creditTransactions || []).find(x => x.id === id)).filter(Boolean);
+  const totalBal = txns.reduce((s, t) => s + t.balanceRemaining, 0);
+  const change   = Math.max(0, received - totalBal);
+  const applied  = received - change;
+
+  // ── Confirmation prompt with change ────────────────────────────────
+  const confirmLines = [
+    `Customer: ${cust.name}`,
+    `Amount Received: ₱${received.toFixed(2)}`,
+    `Applied to Utang: ₱${Math.min(received, totalBal).toFixed(2)}`,
+    change > 0 ? `Change: ₱${change.toFixed(2)}` : '',
+    `Transactions: ${selectedIds.length}`,
+    `Payment Method: ${CL_PAY.method.toUpperCase()}`,
+    '',
+    'Confirm this payment?'
+  ].filter(l => l !== null);
+  if (!confirm(confirmLines.join('\n'))) return;
+
+  const now      = new Date();
+  const ss       = S.settings || {};
+  const payments = [];
+  let remaining  = received; // distribute received amount
+
+  // Distribute: oldest transaction first (already sorted by createdAt)
+  txns.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+  txns.forEach(txn => {
+    if (remaining <= 0) return;
+
+    const applied = Math.min(remaining, txn.balanceRemaining);
+    remaining     = parseFloat((remaining - applied).toFixed(2));
+
+    // Save payment record
+    const pay = {
+      id:            'cp_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,6),
+      creditTxnId:   txn.id,
+      customerId:    CL_PAY.customerId,
+      customerName:  cust.name,
+      amount:        applied,
+      amountReceived:received,
+      change:        Math.max(0, received - totalBal),
+      paymentMethod: CL_PAY.method,
+      paymentDate:   now.toISOString(),
+      receivedBy:    CU?.nm || 'admin',
+      createdAt:     now.toISOString(),
+      batchPayment:  selectedIds.length > 1,
+    };
+    S.creditPayments = S.creditPayments || [];
+    S.creditPayments.push(pay);
+    payments.push(pay);
+
+    // Update transaction
+    txn.balanceRemaining = parseFloat(Math.max(0, txn.balanceRemaining - applied).toFixed(2));
+    txn.amountPaid       = parseFloat(((txn.amountPaid || 0) + applied).toFixed(2));
+    txn._updatedAt       = now.toISOString();
+    txn.status           = txn.balanceRemaining <= 0 ? 'PAID' : 'PARTIAL';
+    if (txn.status === 'PAID') txn.paidAt = now.toISOString();
+  });
+
+  // Update customer running balance
+  const totalApplied = received - Math.max(0, remaining);
+  const custIdx = S.creditCustomers.findIndex(x => x.id === CL_PAY.customerId);
+  if (custIdx >= 0) {
+    S.creditCustomers[custIdx].currentBalance = Math.max(0,
+      parseFloat((S.creditCustomers[custIdx].currentBalance - totalApplied).toFixed(2))
+    );
+    S.creditCustomers[custIdx]._updatedAt = now.toISOString();
+  }
+
+  dataStore._persist();
+
+  // Generate combined receipt
+  const ln       = '================================';
+  const ctr      = (s, w = 32) => ' '.repeat(Math.max(0, Math.floor((w - s.length) / 2))) + s;
+  const newBal   = clGetBalance(CL_PAY.customerId);
+  let r = `${ln}\n${ctr(ss.storeName || "Kyrie's")}\n`;
+  if (ss.address) r += `${ctr(ss.address)}\n`;
+  r += `${ln}\n*** UTANG PAYMENT RECEIPT ***\n${ln}\n`;
+  r += `${now.toLocaleString('en-PH')}\nCashier: ${CU?.nm || ''}\n${ln}\n`;
+  r += `Customer: ${cust.name}\n`;
+  r += `Contact:  ${cust.contact}\n${ln}\n`;
+  if (txns.length > 1) {
+    r += `BATCH PAYMENT — ${txns.length} transactions\n${ln}\n`;
+    txns.forEach(t => {
+      const p = payments.find(x => x.creditTxnId === t.id);
+      r += `#${t.receiptCode || t.id.slice(-6)}: ${peso(p?.amount || 0)} → ${t.status}\n`;
+    });
+    r += `${ln}\n`;
+  } else {
+    r += `Txn Ref: #${txns[0]?.receiptCode || txns[0]?.id}\n${ln}\n`;
+  }
+  r += `AMOUNT RECEIVED: ${peso(received)}\n`;
+  r += `APPLIED:         ${peso(totalApplied)}\n`;
+  if (change > 0) r += `CHANGE:          ${peso(change)}\n`;
+  r += `METHOD:          ${CL_PAY.method.toUpperCase()}\n${ln}\n`;
+  r += `PREV. TOTAL BAL: ${peso(totalBal)}\n`;
+  r += `NEW BALANCE:     ${peso(newBal)}\n${ln}\n`;
+  r += newBal <= 0 ? `${ctr('ALL UTANG PAID! 🎉')}\n${ctr('SALAMAT!')}` : `${ctr('Remaining: ' + peso(newBal))}`;
+  r += `\n${ln}\n${ctr(ss.footer || 'Thank you!')}`;
+
+  _printReceipt(r);
+
+  // Close and refresh live
+  closeM('mcl-payment');
+  clRenderLedger();
+  clOpenDetail(CL_PAY.customerId);
+  renderDash();
+
+  const paidCount = txns.filter(t => t.status === 'PAID').length;
+  showNotif(`✅ ${peso(totalApplied)} recorded for ${cust.name}. ${paidCount > 0 ? `${paidCount} txn${paidCount > 1 ? 's' : ''} fully paid!` : `Remaining: ${peso(newBal)}`}`);
+}
+
+// ── § 20 PHASE B — CREDIT CHECKOUT AT POS ───────────────────────────
+
+// Holds the currently selected customer during credit checkout
+let _clPickedCustomer = null;
+
+/**
+ * Opens the Add to Utang modal from POS.
+ * Validates that there are items in the cart before opening.
+ * @param {number} tot - Cart total amount
+ */
+function clOpenCreditCheckout(tot) {
+  if (!cart.length) {
+    showMsg('scmsg', '❌ Cart is empty.', 'alr');
+    return;
+  }
+
+  _clPickedCustomer = null;
+
+  // Fill cart summary in modal
+  const itemsEl    = $('mclco-items-summary');
+  const totalEl    = $('mclco-total');
+  const listEl     = $('mclco-items-list');
+  const confirmEl  = $('mclco-confirm');
+  const searchEl   = $('mclco-search');
+  const pickerEl   = $('mclco-picker');
+
+  const itemCount = cart.reduce((s, c) => s + c.qty, 0);
+  if (itemsEl)   itemsEl.textContent   = `${itemCount} item${itemCount !== 1 ? 's' : ''}`;
+  if (totalEl)   totalEl.textContent   = peso(tot);
+  if (listEl)    listEl.textContent    = cart.map(c => `${c.nm} ×${c.qty}`).join(' · ');
+
+  // ── Reset modal state fully on every open ──
+  // Bug fix: picker + search stay hidden if user previously picked a customer
+  // We must explicitly restore them to visible on each open.
+  if (confirmEl)  confirmEl.style.display  = 'none';
+  if (searchEl)  { searchEl.value = ''; searchEl.style.display = 'block'; }
+  if (pickerEl)    pickerEl.style.display   = 'flex';
+
+  clRenderCreditPicker();
+  openM('mcl-checkout');
+}
+
+/**
+ * Renders the customer picker list inside the credit checkout modal.
+ * Filters by search text. Only shows ACTIVE customers (not blocked).
+ */
+function clRenderCreditPicker() {
+  const picker   = $('mclco-picker');
+  const search   = ($('mclco-search')?.value || '').toLowerCase().trim();
+  const tot      = cart.reduce((s, c) => s + c.sell * c.qty, 0);
+
+  if (!picker) return;
+
+  const customers = clActiveCustomers();
+  if (!customers.length) {
+    picker.innerHTML = `<div style="text-align:center;padding:24px;color:var(--tx2)">
+      <div style="font-size:24px;margin-bottom:6px">📒</div>
+      <div style="font-weight:600;font-size:13px">No registered credit customers</div>
+      <div style="font-size:12px;margin-top:4px">Admin must register a customer in the Debt Ledger first.</div>
+    </div>`;
+    return;
+  }
+
+  const filtered = customers.filter(c =>
+    !search || c.name.toLowerCase().includes(search)
+  );
+
+  if (!filtered.length) {
+    picker.innerHTML = `<div style="text-align:center;padding:16px;color:var(--tx2);font-size:13px">
+      No customers match "<strong>${esc(search)}</strong>"
+    </div>`;
+    return;
+  }
+
+  picker.innerHTML = filtered.map(c => {
+    const bal       = clGetBalance(c.id);
+    const available = Math.max(0, c.creditLimit - bal);
+    const canCredit = c.status !== 'BLOCKED' && available >= tot;
+    const isBlocked = c.status === 'BLOCKED';
+    const overLimit = !isBlocked && available < tot;
+    const score     = clTrustScore(c.id);
+    const scoreColor= score >= 80 ? 'var(--gn)' : score >= 50 ? 'var(--am)' : 'var(--rd)';
+
+    return `<div
+      onclick="${canCredit ? `clPickCreditCustomerWarnings('${c.id}',${tot})` : ''}"
+      style="background:var(--sf2);border:1px solid ${isBlocked ? 'var(--rdb)' : overLimit ? 'var(--amb)' : 'var(--bd)'};
+             border-radius:var(--rs);padding:10px 12px;cursor:${canCredit ? 'pointer' : 'default'};
+             opacity:${canCredit ? '1' : '0.6'}">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-weight:700;font-size:13px">${esc(c.name)}</div>
+          <div style="font-size:11px;color:var(--tx2)">${esc(c.contact)}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:12px;font-weight:700;color:${available > 0 ? 'var(--gn)' : 'var(--rd)'}">
+            ₱${available.toFixed(2)} avail.
+          </div>
+          <div style="font-size:10px;color:${scoreColor}">⭐ ${score}%</div>
+        </div>
+      </div>
+      ${isBlocked  ? '<div style="font-size:11px;color:var(--rd);margin-top:3px">🚫 Blocked — cannot accept credit</div>' : ''}
+      ${overLimit  ? `<div style="font-size:11px;color:var(--am);margin-top:3px">⚠️ Purchase (${peso(tot)}) exceeds available limit (${peso(available)})</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+/**
+ * Called when a customer row is tapped in the picker.
+ * Shows the confirmation panel with balance details and warnings.
+ * @param {string} customerId
+ * @param {number} tot - Cart total
+ */
+function clPickCreditCustomer(customerId, tot) {
+  const c = clActiveCustomers().find(x => x.id === customerId);
+  if (!c) return;
+
+  _clPickedCustomer = c;
+
+  const bal       = clGetBalance(c.id);
+  const available = Math.max(0, c.creditLimit - bal);
+  const newBal    = bal + tot;
+  const pct       = c.creditLimit > 0 ? (newBal / c.creditLimit) * 100 : 100;
+
+  // Hide picker, show confirm panel
+  const picker    = $('mclco-picker');
+  const searchWrap = $('mclco-search');
+  const confirmEl = $('mclco-confirm');
+  if (picker)    picker.style.display    = 'none';
+  if (searchWrap) searchWrap.style.display = 'none';
+  if (confirmEl) confirmEl.style.display = 'block';
+
+  if ($('mclco-cname'))    $('mclco-cname').textContent    = c.name;
+  if ($('mclco-ccontact')) $('mclco-ccontact').textContent = c.contact;
+  if ($('mclco-balance'))  $('mclco-balance').textContent  = '₱' + bal.toFixed(2);
+  if ($('mclco-limit'))    $('mclco-limit').textContent    = '₱' + c.creditLimit.toFixed(2);
+  if ($('mclco-available'))$('mclco-available').textContent= '₱' + available.toFixed(2);
+
+  // Build warning messages
+  const warnEl = $('mclco-warn');
+  if (warnEl) {
+    const warns = [];
+    if (pct >= 100) warns.push(`<div class="al alr" style="font-size:12px">🚫 Will reach credit limit after this purchase.</div>`);
+    else if (pct >= 80) warns.push(`<div class="al ala" style="font-size:12px">⚠️ Will use ${pct.toFixed(0)}% of credit limit after this.</div>`);
+    // Check overdue transactions
+    const hasOverdue = clTxnsFor(c.id).some(t => t.status === 'OVERDUE');
+    if (hasOverdue) warns.push(`<div class="al ala" style="font-size:12px">⚠️ This customer has overdue payments. Remind them to pay.</div>`);
+    warnEl.innerHTML = warns.join('');
+  }
+
+  // Disable confirm button if over limit
+  const btn = $('mclco-confirm-btn');
+  if (btn) btn.disabled = newBal > c.creditLimit;
+}
+
+/** Clears the picked customer and goes back to the picker list */
+function clClearCreditPick() {
+  _clPickedCustomer = null;
+  const picker     = $('mclco-picker');
+  const searchWrap = $('mclco-search');
+  const confirmEl  = $('mclco-confirm');
+  if (picker)     picker.style.display     = 'block';
+  if (searchWrap) searchWrap.style.display = 'block';
+  if (confirmEl)  confirmEl.style.display  = 'none';
+}
+
+/**
+ * Confirms and saves the credit transaction.
+ * Mirrors checkout() exactly for stock deduction and receipt,
+ * but saves to S.creditTransactions instead of a paid sale.
+ * Also saves a regular transaction record with paymentMethod:'credit'
+ * so it appears in sales reports and cashflow correctly.
+ */
+function clConfirmCreditCheckout() {
+  if (!_clPickedCustomer || !cart.length) return;
+
+  const c   = _clPickedCustomer;
+  const tot = cart.reduce((s, i) => s + i.sell * i.qty, 0);
+  const bal = clGetBalance(c.id);
+
+  // Final safety checks
+  if (c.status === 'BLOCKED') {
+    showMsg('scmsg', `🚫 ${c.name} is blocked from credit.`, 'alr');
+    closeM('mcl-checkout');
+    return;
+  }
+  if (bal + tot > c.creditLimit) {
+    showMsg('scmsg', `⚠️ Exceeds ${c.name}'s credit limit.`, 'alr');
+    closeM('mcl-checkout');
+    return;
+  }
+
+  const now        = new Date();
+  const code       = generateBarcode();
+  const ss         = S.settings || {};
+  const dueDays    = c.dueDays || ss.creditDueDays || 7;
+  const dueDate    = new Date(now.getTime() + dueDays * 86400000).toISOString();
+  const profit     = cart.reduce((s, i) => s + (i.sell - i.buy) * i.qty, 0);
+
+  // ── 1. Save credit transaction record ──────────────────────────────
+  const creditTxn = {
+    id:               'ct_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,6),
+    customerId:       c.id,
+    customerName:     c.name,
+    receiptCode:      code,
+    date:             now.toISOString(),
+    dueDate,
+    items:            cart.map(i => ({ nm: i.nm, bc: i.bc, qty: i.qty, price: i.sell, buy: i.buy })),
+    totalAmount:      tot,
+    amountPaid:       0,
+    balanceRemaining: tot,
+    penalty:          0,
+    penaltyApplied:   false,
+    status:           'PENDING',  // PENDING → PARTIAL → PAID | OVERDUE
+    createdBy:        CU?.nm || 'admin',
+    createdAt:        now.toISOString(),
+    _updatedAt:       now.toISOString(),
+  };
+
+  S.creditTransactions = S.creditTransactions || [];
+  S.creditTransactions.push(creditTxn);
+
+  // ── 2. Update customer running balance ─────────────────────────────
+  const custIdx = S.creditCustomers.findIndex(x => x.id === c.id);
+  if (custIdx >= 0) {
+    S.creditCustomers[custIdx].currentBalance =
+      parseFloat((bal + tot).toFixed(2));
+    S.creditCustomers[custIdx]._updatedAt = now.toISOString();
+  }
+
+  // ── 3. Save to S.transactions (for reports/cashflow) ───────────────
+  // paymentMethod:'credit' — marks it as unpaid in financial reports
+  const saleTxn = {
+    rc:            code,
+    date:          now.toLocaleDateString('en-PH'),
+    time:          now.toLocaleTimeString('en-PH'),
+    cashier:       CU?.nm  || '',
+    cashierId:     CU?.id  || '',
+    items:         cart.map(i => ({ nm: i.nm, bc: i.bc, qty: i.qty, price: i.sell, buy: i.buy, ty: i.ty || 'regular' })),
+    total:         tot,
+    profit,
+    cash:          0,
+    change:        0,
+    paymentMethod: 'credit',
+    creditCustomerId:   c.id,
+    creditCustomerName: c.name,
+    creditTxnId:        creditTxn.id,
+    status:        'completed',
+  };
+  dataStore.createTransaction(saleTxn);
+
+  // ── 4. Deduct stock — identical to regular checkout ────────────────
+  cart.forEach(it => {
+    const p = S.products.find(x => x.bc === it.bc);
+    if (p) {
+      dataStore.updateStock(p.bc, p.stock - it.qty, 'sale');
+      p.sold = (p.sold || 0) + it.qty;
+      dataStore.updateProduct(p.bc, { sold: p.sold });
+    }
+  });
+
+  // ── 5. Persist everything ──────────────────────────────────────────
+  dataStore._persist();
+  updBadge();
+  syncEngine.onSale(code);
+
+  // ── 6. Generate credit receipt ────────────────────────────────────
+  const ln  = '================================';
+  const ctr = (s, w = 32) => ' '.repeat(Math.max(0, Math.floor((w - s.length) / 2))) + s;
+  let r = `${ln}\n${ctr(ss.storeName || "Kyrie's")}\n`;
+  if (ss.address) r += `${ctr(ss.address)}\n`;
+  if (ss.contact) r += `${ctr(ss.contact)}\n`;
+  r += `${ln}\n*** CREDIT / UTANG TRANSACTION ***\n${ln}\n`;
+  r += `${now.toLocaleString('en-PH')}\nCashier: ${CU?.nm || ''}\n${ln}\n`;
+  r += `Customer: ${c.name}\nContact:  ${c.contact}\n${ln}\n`;
+  creditTxn.items.forEach(i => {
+    r += `${i.nm}\n  ${i.qty} x ${peso(i.price)} = ${peso(i.price * i.qty)}\n`;
+  });
+  r += `${ln}\nTOTAL UTANG: ${peso(tot)}\nDUE DATE:    ${new Date(dueDate).toLocaleDateString('en-PH')}\n`;
+  r += `OLD BALANCE: ${peso(bal)}\nNEW BALANCE: ${peso(bal + tot)}\nLIMIT:       ${peso(c.creditLimit)}\n`;
+  r += `${ln}\n# ${code}\n${ln}\n`;
+  r += `${ctr('UTANG - BAYARAN AGAD!')}\n${ctr(`Due: ${new Date(dueDate).toLocaleDateString('en-PH')}`)}\n${ln}\n`;
+  r += `${ctr(ss.footer || 'Thank you!')}`;
+
+  // Show receipt
+  if ($('rcd'))  $('rcd').textContent  = 'Receipt Code: ' + code;
+  if ($('rpre')) $('rpre').textContent = r;
+  if ($('rcrd')) $('rcrd').style.display = 'block';
+  lrec = r;
+  if ($('prc'))  $('prc').innerHTML = `<pre>${r}</pre>`;
+
+  // ── 7. Clear cart and close modal ─────────────────────────────────
+  cart = [];
+  _clPickedCustomer = null;
+  closeM('mcl-checkout');
+  renderCart();
+  renderPG();   // ← re-render product grid so stock counts update live (matches checkout())
+  renderDash();
+  if ($('bci')) $('bci').focus();
+
+  showNotif(`📒 Utang recorded for ${c.name} — ₱${tot.toFixed(2)} due ${new Date(dueDate).toLocaleDateString('en-PH')}`);
 }
 
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║  PHASE 6A — QR CODE SUPPORT                                     ║
+// ║  § 17  PHASE 6A — QR CODE SUPPORT                                     ║
 // ║  Camera scanner (jsQR) + QR generator (qrcode.js)               ║
 // ║  Offline-first: core features work without internet.            ║
 // ║  Libraries gracefully degrade if CDN unavailable.               ║
@@ -18422,10 +21086,9 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-console.log('[Phase 6A] QR Code Support loaded ✅');
 
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║  PHASE 6B — AI STORE ASSISTANT                        KPOS.V6.1.C2 ║
+// ║  § 18  PHASE 6B — AI STORE ASSISTANT                        KPOS.V7.1.F2 ║
 // ║  Primary:  Google Gemini 1.5 Flash (FREE — no credit card)      ║
 // ║  Fallback: Groq Llama3 (FREE — generous limits)                 ║
 // ║  Offline-first: gracefully disabled when no internet.           ║
@@ -18989,10 +21652,9 @@ function aiDemoReply(text) {
 window.addEventListener('online',  () => { aiCheckStatus(); aiCheckOnline(); });
 window.addEventListener('offline', () => { aiCheckStatus(); aiCheckOnline(); });
 
-console.log('[Phase 6B] AI Store Assistant loaded ✅ (Gemini Flash / Groq — free APIs)');
 
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║  PHASE 6C — SMART INVENTORY (AI Camera)              KPOS.V6.1.C2 ║
+// ║  § 19  PHASE 6C — SMART INVENTORY (AI Camera)              KPOS.V7.1.F2 ║
 // ║  Snap a photo of a product → Gemini Vision identifies it        ║
 // ║  → auto-fills Name, Category, Buy/Sell price in Add Product     ║
 // ║  Uses same free Gemini API key as Phase 6B AI Assistant         ║
@@ -19228,8 +21890,7 @@ Use Philippine peso pricing. buyPrice=wholesale, sellPrice=retail sari-sari pric
       }
 
       const data = await res.json();
-      console.log(`[SI] ${ep.model} response:`, JSON.stringify(data?.candidates?.[0]));
-
+      
       const finishReason = data?.candidates?.[0]?.finishReason;
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
@@ -19253,8 +21914,7 @@ Use Philippine peso pricing. buyPrice=wholesale, sellPrice=retail sari-sari pric
     throw new Error(msg.includes('invalid_key') ? '🔑 Invalid API key.' : `Could not reach Gemini API: ${msg}`);
   }
 
-  console.log(`[SI] Got result from ${usedModel}:`, result);
-
+  
   // Robust JSON extraction
   let parsed;
   try {
@@ -19313,7 +21973,7 @@ function siAutoFill(data, statusEl, detailEl) {
   }
 
   // Recalculate margin
-  mpRM();
+  recalcMargin();
 
   // Generate a barcode if empty
   const bcEl = $('mpbc');
@@ -19343,7 +22003,6 @@ const _origOnline  = window.addEventListener.toString(); // keep ref
 window.addEventListener('online',  () => { if ($('sizone')?.style.display !== 'none') siResetZone(false); });
 window.addEventListener('offline', () => { if ($('sizone')?.style.display !== 'none') siResetZone(false); });
 
-console.log('[Phase 6C] Smart Inventory (AI Camera) loaded ✅');
 </script>
 </body>
 </html>
