@@ -11284,20 +11284,27 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
 
       <!-- STEP 3: Agreement & contract -->
       <div id="cl-step-3" style="display:none">
-        <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;font-size:12px;line-height:1.7;margin-bottom:12px" id="cl-agreement-text">
+        <!-- Scrollable agreement box with fixed height -->
+        <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:var(--rs);
+                    padding:14px;font-size:12px;line-height:1.7;
+                    max-height:220px;overflow-y:auto;-webkit-overflow-scrolling:touch;
+                    margin-bottom:10px" id="cl-agreement-text">
           <!-- Filled dynamically by clStepGo(3) -->
         </div>
 
-        <div class="al alb" style="font-size:11px;margin-bottom:12px;line-height:1.55">
-          ⚖️ <strong>Legal basis:</strong> This agreement is a valid contract under the Civil Code of the Philippines (Art. 1305–1317).
-          The signed agreement with face photo constitutes proof of obligation enforceable under Philippine law.
-          Data collected is protected under RA 10173 (Data Privacy Act) and used solely for store credit management.
+        <div class="al alb" style="font-size:11px;margin-bottom:10px;line-height:1.55">
+          ⚖️ <strong>Legal basis:</strong> Valid contract under Civil Code of the Philippines (Art. 1305–1317).
+          Data protected under RA 10173 (Data Privacy Act of 2012).
         </div>
 
-        <div style="margin-bottom:12px">
-          <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:13px">
-            <input type="checkbox" id="cl-agree-chk" style="margin-top:2px;flex-shrink:0"/>
-            <span>The customer has read and <strong>agrees to the terms</strong> above. I confirm the identity and photos are accurate.</span>
+        <!-- Confirmation checkbox — clean bordered card style -->
+        <div style="background:var(--sf2);border:2px solid var(--gn);border-radius:var(--rs);
+                    padding:10px 12px;margin-bottom:10px">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;
+                         font-weight:600;color:var(--tx)">
+            <input type="checkbox" id="cl-agree-chk"
+              style="width:18px;height:18px;flex-shrink:0;accent-color:var(--gn);cursor:pointer"/>
+            <span>✅ I confirm the customer has read and <strong style="color:var(--gn)">agrees</strong> to the terms above, and the identity and photos are accurate.</span>
           </label>
         </div>
 
@@ -15179,6 +15186,7 @@ function clrCart(){if(!cart.length||confirm('Clear cart? All items will be remov
 function checkout(tot){
   const cash=parseFloat($('cshi')?.value)||0;
   if(cash<tot){showMsg('scmsg','❌ Cash less than total!','alr');return;}
+  _showProcessing('Processing payment…');
   const change=cash-tot,profit=cart.reduce((s,c)=>s+(c.sell-c.buy)*c.qty,0);
   const now=new Date(),code=generateBarcode(),ss=S.settings;
   // FIX BUG-08: include bc in items so return/void can reliably find the product by barcode
@@ -15204,47 +15212,85 @@ function checkout(tot){
   $('rcd').textContent='Receipt Code: '+code;$('rpre').textContent=r;$('rcrd').style.display='block';
   lrec=r;$('prc').innerHTML=`<pre>${r}</pre>`;
   syncEngine.onSale(code);
-  cart=[];renderCart();renderPG();renderDash();$('bci').focus();
+  cart=[];renderCart();renderPG();renderDash();_hideProcessing();$('bci').focus();
 }
 
 // ── PRINT HELPER ──────────────────────────────────────────────────────────────
 // Uses Blob URL to open a new print window safely — no document.write(),
 // no inline script-tag injection, no parser interference.
 function _printReceipt(receiptText){
-  var css=[
-    'body{font-family:"Courier New",monospace;font-size:12px;',
-    'padding:10px;width:280px;margin:0}',
-    'pre{white-space:pre-wrap}',
-    '@media print{@page{margin:3mm}}'
-  ].join('');
-  var html=[
-    '<!DOCTYPE html><html><head>',
-    '<meta charset="UTF-8">',
-    '<title>Receipt</title>',
-    '<style>'+css+'</style>',
-    '</head><body>',
-    '<pre>'+receiptText+'</pre>',
-    '</body></html>'
-  ].join('');
-  try{
-    var blob=new Blob([html],{type:'text/html'});
-    var url=URL.createObjectURL(blob);
-    var w=window.open(url,'_blank','width=380,height=600');
-    if(!w){alert('Pop-up blocked. Please allow pop-ups for this site to print receipts.');return;}
-    w.addEventListener('load',function(){
-      w.print();
-      setTimeout(function(){URL.revokeObjectURL(url);},2000);
-    });
-  }catch(e){
-    // Fallback for environments where Blob URLs are blocked
-    console.warn('[POS] Blob print failed, trying fallback:',e);
-    var w2=window.open('','_blank','width=380,height=600');
-    if(!w2){alert('Pop-up blocked. Please allow pop-ups for this site to print receipts.');return;}
-    w2.document.open();
-    w2.document.write(html);
-    w2.document.close();
-    setTimeout(function(){w2.print();},300);
+  // ── Deferred print — never blocks the main thread ─────────────────
+  // window.open() can freeze the UI for 1-3 seconds on mobile.
+  // By deferring with setTimeout(0), we let the UI update first
+  // (cart clear, receipt show) then open the print window after.
+  setTimeout(function(){
+    var css=[
+      'body{font-family:"Courier New",monospace;font-size:12px;',
+      'padding:10px;width:280px;margin:0}',
+      'pre{white-space:pre-wrap;word-break:break-word}',
+      '@media print{@page{margin:3mm}}'
+    ].join('');
+    var html=[
+      '<!DOCTYPE html><html><head>',
+      '<meta charset="UTF-8">',
+      '<title>Receipt</title>',
+      '<style>'+css+'</style>',
+      '</head><body>',
+      '<pre>'+receiptText+'</pre>',
+      '</body></html>'
+    ].join('');
+    try{
+      var blob=new Blob([html],{type:'text/html'});
+      var url=URL.createObjectURL(blob);
+      var w=window.open(url,'_blank','width=380,height=600');
+      if(!w){
+        // Pop-up blocked — show receipt inline instead
+        console.warn('[POS] Pop-up blocked — receipt shown inline only.');
+        return;
+      }
+      w.addEventListener('load',function(){
+        w.print();
+        setTimeout(function(){URL.revokeObjectURL(url);},2000);
+      });
+    }catch(e){
+      console.warn('[POS] Blob print failed, trying fallback:',e);
+      var w2=window.open('','_blank','width=380,height=600');
+      if(!w2){return;}
+      w2.document.open();
+      w2.document.write(html);
+      w2.document.close();
+      setTimeout(function(){w2.print();},300);
+    }
+  }, 0); // defer to next event loop tick — UI updates first
+}
+
+/** Shows a brief "Processing..." overlay to reassure user during checkout */
+function _showProcessing(msg) {
+  let ov = $('prc-processing');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'prc-processing';
+    ov.style.cssText = `
+      position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;
+      display:flex;align-items:center;justify-content:center`;
+    ov.innerHTML = `<div style="background:var(--sf);border-radius:var(--r);padding:24px 32px;
+      text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.3);min-width:200px">
+      <div style="font-size:28px;margin-bottom:8px">⏳</div>
+      <div id="prc-processing-msg" style="font-weight:700;font-size:14px;color:var(--tx)">Processing...</div>
+      <div style="font-size:12px;color:var(--tx2);margin-top:4px">Please wait a moment</div>
+    </div>`;
+    document.body.appendChild(ov);
   }
+  const msgEl = $('prc-processing-msg');
+  if (msgEl) msgEl.textContent = msg || 'Processing...';
+  ov.style.display = 'flex';
+  // Auto-hide after 1.5s as a safety net
+  setTimeout(() => _hideProcessing(), 1500);
+}
+
+function _hideProcessing() {
+  const ov = $('prc-processing');
+  if (ov) ov.style.display = 'none';
 }
 function doPrint(){
   // Use Blob URL — safe, no injection risk in document.write
@@ -19193,8 +19239,10 @@ function clSaveCustomer() {
 
   closeM('mcl-register');
   clCamClose(); // ensure camera is stopped
+
+  // Switch to Debt Ledger tab so the new customer is immediately visible
+  switchTab('creditLedger');
   showNotif(`✅ ${customer.name} registered as credit customer.`);
-  clRenderLedger();
 }
 
 // ── PHOTO CAPTURE ────────────────────────────────────────────────────
@@ -19805,36 +19853,58 @@ async function clContractDownloadImg() {
 function clViewTxnReceipt(txnId) {
   const t = (S.creditTransactions || []).find(x => x.id === txnId);
   if (!t) return;
-  const c  = (S.creditCustomers || []).find(x => x.id === t.customerId);
-  const ss = S.settings || {};
-  const ln = '================================';
-  const ctr = (s, w = 32) => ' '.repeat(Math.max(0, Math.floor((w - s.length) / 2))) + s;
+  const c        = (S.creditCustomers || []).find(x => x.id === t.customerId);
+  const ss       = S.settings || {};
   const payments = clPaymentsFor(t.id);
-  const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
+  const totalPaid= payments.reduce((s, p) => s + p.amount, 0);
 
-  let r = `${ln}\n${ctr(ss.storeName || "Kyrie's")}\n`;
+  const W   = 40;
+  const ln  = '─'.repeat(W);
+  const dln = '═'.repeat(W);
+  const ctr = (s) => { s=String(s); const p=Math.floor((W-s.length)/2); return s.length>=W?s:' '.repeat(p)+s; };
+  const row = (label, val) => { val=String(val); const sp=W-label.length-val.length; return label+(sp>0?' '.repeat(sp):' ')+val; };
+
+  let r = `${dln}\n`;
+  r += `${ctr(ss.storeName || "Kyrie's Sari-Sari Store")}\n`;
   if (ss.address) r += `${ctr(ss.address)}\n`;
   if (ss.contact) r += `${ctr(ss.contact)}\n`;
-  r += `${ln}\n*** CREDIT / UTANG TRANSACTION ***\n${ln}\n`;
-  r += `Date:     ${new Date(t.date).toLocaleDateString('en-PH')}\n`;
-  r += `Receipt:  #${t.receiptCode || t.id}\n`;
-  r += `Cashier:  ${t.createdBy || ''}\n${ln}\n`;
-  r += `Customer: ${t.customerName || (c?.name || '')}\n`;
-  if (c?.contact) r += `Contact:  ${c.contact}\n`;
+  r += `${dln}\n`;
+  r += `${ctr('CREDIT / UTANG TRANSACTION')}\n`;
+  r += `${dln}\n`;
+  r += `${row('Date:', new Date(t.date).toLocaleDateString('en-PH'))}\n`;
+  r += `${row('Receipt #:', t.receiptCode || t.id)}\n`;
+  r += `${row('Cashier:', t.createdBy || '')}\n`;
+  r += `${ln}\n`;
+  r += `${row('Customer:', t.customerName || c?.name || '')}\n`;
+  if (c?.contact) r += `${row('Contact:', c.contact)}\n`;
+  r += `${ln}\n`;
+  r += `${'ITEM'.padEnd(22)}${'QTY'.padStart(4)}${'AMOUNT'.padStart(14)}\n`;
   r += `${ln}\n`;
   (t.items || []).forEach(i => {
-    r += `${i.nm}\n  ${i.qty} x ${peso(i.price)} = ${peso(i.price * i.qty)}\n`;
+    const nm   = i.nm.length > 24 ? i.nm.slice(0,23)+'…' : i.nm;
+    const line = `${i.qty} x ${peso(i.price)}`;
+    r += `${nm}\n${row(' '+line, peso(i.price * i.qty))}\n`;
   });
   r += `${ln}\n`;
-  r += `TOTAL:       ${peso(t.totalAmount)}\n`;
-  r += `PAID:        ${peso(totalPaid)}\n`;
-  r += `BALANCE:     ${peso(t.balanceRemaining)}\n`;
-  if (t.penalty) r += `PENALTY:     ${peso(t.penalty)}\n`;
-  r += `STATUS:      ${t.status}\n`;
-  r += `DUE DATE:    ${new Date(t.dueDate).toLocaleDateString('en-PH')}\n`;
-  r += `${ln}\n${ctr('UTANG - BAYARAN AGAD!')}\n`;
-  r += `${ctr(`Due: ${new Date(t.dueDate).toLocaleDateString('en-PH')}`)}\n${ln}\n`;
-  r += `${ctr(ss.footer || 'Thank you!')}`;
+  r += `${row('TOTAL AMOUNT:', peso(t.totalAmount))}\n`;
+  r += `${row('AMOUNT PAID:', peso(totalPaid))}\n`;
+  r += `${row('BALANCE:', peso(t.balanceRemaining))}\n`;
+  if (t.penalty) r += `${row('PENALTY:', peso(t.penalty))}\n`;
+  r += `${row('STATUS:', t.status)}\n`;
+  r += `${ln}\n`;
+  r += `${row('Due Date:', new Date(t.dueDate).toLocaleDateString('en-PH'))}\n`;
+  r += `${ln}\n`;
+  if (t.balanceRemaining > 0) {
+    r += `${ctr('-- NOTICE --')}\n`;
+    r += `${ctr('Outstanding balance: ' + peso(t.balanceRemaining))}\n`;
+    r += `${ctr('Please settle on or before')}\n`;
+    r += `${ctr(new Date(t.dueDate).toLocaleDateString('en-PH')+'.')}\n`;
+  } else {
+    r += `${ctr('Account balance fully settled.')}\n`;
+    r += `${ctr('Thank you for your payment!')}\n`;
+  }
+  r += `${dln}\n`;
+  r += `${ctr(ss.footer || 'Thank you! God bless!')}`;
 
   // Use the existing print helper — no pop-up restrictions
   _printReceipt(r);
@@ -20421,8 +20491,10 @@ function clConfirmPayment() {
   r += `METHOD:          ${CL_PAY.method.toUpperCase()}\n${ln}\n`;
   r += `PREV. TOTAL BAL: ${peso(totalBal)}\n`;
   r += `NEW BALANCE:     ${peso(newBal)}\n${ln}\n`;
-  r += newBal <= 0 ? `${ctr('ALL UTANG PAID! 🎉')}\n${ctr('SALAMAT!')}` : `${ctr('Remaining: ' + peso(newBal))}`;
-  r += `\n${ln}\n${ctr(ss.footer || 'Thank you!')}`;
+  r += newBal <= 0
+    ? `${ctr('Your account balance is now fully settled.')}\n${ctr('Thank you for your payment!')}`
+    : `${ctr('This is a system-generated payment receipt.')}\n${ctr('Remaining balance: ' + peso(newBal))}`;
+  r += `\n${ln}\n${ctr(ss.footer || 'Thank you! God bless!')}`;
 
   _printReceipt(r);
 
@@ -20627,6 +20699,8 @@ function clConfirmCreditCheckout() {
     return;
   }
 
+  _showProcessing('Recording utang…');
+
   const now        = new Date();
   const code       = generateBarcode();
   const ss         = S.settings || {};
@@ -20701,23 +20775,73 @@ function clConfirmCreditCheckout() {
   updBadge();
   syncEngine.onSale(code);
 
-  // ── 6. Generate credit receipt ────────────────────────────────────
-  const ln  = '================================';
-  const ctr = (s, w = 32) => ' '.repeat(Math.max(0, Math.floor((w - s.length) / 2))) + s;
-  let r = `${ln}\n${ctr(ss.storeName || "Kyrie's")}\n`;
+  // ── 6. Generate credit receipt ─────────────────────────────────────
+  // 40-char wide thermal receipt format
+  const W   = 40;
+  const ln  = '─'.repeat(W);
+  const dln = '═'.repeat(W);
+  const ctr = (s) => {
+    s = String(s);
+    if (s.length >= W) return s;
+    const pad = Math.floor((W - s.length) / 2);
+    return ' '.repeat(pad) + s;
+  };
+  // Right-align a label:value pair within W chars
+  const row = (label, val) => {
+    val = String(val);
+    const space = W - label.length - val.length;
+    return label + (space > 0 ? ' '.repeat(space) : ' ') + val;
+  };
+  // Wrap long product names to fit receipt width
+  const wrapItem = (nm, qty, price) => {
+    const lineTotal = peso(price * qty);
+    const itemLine  = `${qty} x ${peso(price)}`;
+    if (nm.length <= W - itemLine.length - lineTotal.length - 2) {
+      return `${nm}\n` + row(` ${itemLine}`, lineTotal);
+    }
+    // Name too long — put it on its own line, amount on next
+    const truncated = nm.length > W ? nm.slice(0, W - 1) : nm;
+    return `${truncated}\n` + row(` ${itemLine}`, lineTotal);
+  };
+
+  let r = '';
+  r += `${dln}\n`;
+  r += `${ctr(ss.storeName || "Kyrie's Sari-Sari Store")}\n`;
   if (ss.address) r += `${ctr(ss.address)}\n`;
   if (ss.contact) r += `${ctr(ss.contact)}\n`;
-  r += `${ln}\n*** CREDIT / UTANG TRANSACTION ***\n${ln}\n`;
-  r += `${now.toLocaleString('en-PH')}\nCashier: ${CU?.nm || ''}\n${ln}\n`;
-  r += `Customer: ${c.name}\nContact:  ${c.contact}\n${ln}\n`;
+  r += `${dln}\n`;
+  r += `${ctr('CREDIT / UTANG TRANSACTION')}\n`;
+  r += `${dln}\n`;
+  r += `${row('Date:', now.toLocaleDateString('en-PH'))}\n`;
+  r += `${row('Time:', now.toLocaleTimeString('en-PH'))}\n`;
+  r += `${row('Cashier:', CU?.nm || '')}\n`;
+  r += `${ln}\n`;
+  r += `${row('Customer:', c.name)}\n`;
+  r += `${row('Contact:', c.contact)}\n`;
+  r += `${row('Receipt #:', code)}\n`;
+  r += `${ln}\n`;
+  r += `${'ITEM'.padEnd(22)}${'QTY'.padStart(4)}${'AMOUNT'.padStart(14)}\n`;
+  r += `${ln}\n`;
   creditTxn.items.forEach(i => {
-    r += `${i.nm}\n  ${i.qty} x ${peso(i.price)} = ${peso(i.price * i.qty)}\n`;
+    r += `${wrapItem(i.nm, i.qty, i.price)}\n`;
   });
-  r += `${ln}\nTOTAL UTANG: ${peso(tot)}\nDUE DATE:    ${new Date(dueDate).toLocaleDateString('en-PH')}\n`;
-  r += `OLD BALANCE: ${peso(bal)}\nNEW BALANCE: ${peso(bal + tot)}\nLIMIT:       ${peso(c.creditLimit)}\n`;
-  r += `${ln}\n# ${code}\n${ln}\n`;
-  r += `${ctr('UTANG - BAYARAN AGAD!')}\n${ctr(`Due: ${new Date(dueDate).toLocaleDateString('en-PH')}`)}\n${ln}\n`;
-  r += `${ctr(ss.footer || 'Thank you!')}`;
+  r += `${ln}\n`;
+  r += `${row('TOTAL AMOUNT:', peso(tot))}\n`;
+  r += `${ln}\n`;
+  r += `${row('Previous Balance:', peso(bal))}\n`;
+  r += `${row('This Transaction:', peso(tot))}\n`;
+  r += `${row('New Balance:', peso(bal + tot))}\n`;
+  r += `${row('Credit Limit:', peso(c.creditLimit))}\n`;
+  r += `${row('Available Credit:', peso(Math.max(0, c.creditLimit - (bal + tot))))}\n`;
+  r += `${ln}\n`;
+  r += `${row('Due Date:', new Date(dueDate).toLocaleDateString('en-PH'))}\n`;
+  r += `${ln}\n`;
+  r += `${ctr('-- NOTICE --')}\n`;
+  r += `${ctr('This is an official credit record.')}\n`;
+  r += `${ctr('Please settle on or before the')}\n`;
+  r += `${ctr('due date to avoid penalties.')}\n`;
+  r += `${dln}\n`;
+  r += `${ctr(ss.footer || 'Thank you! God bless!')}\n`;
 
   // Show receipt
   if ($('rcd'))  $('rcd').textContent  = 'Receipt Code: ' + code;
@@ -20733,6 +20857,7 @@ function clConfirmCreditCheckout() {
   renderCart();
   renderPG();   // ← re-render product grid so stock counts update live (matches checkout())
   renderDash();
+  _hideProcessing();
   if ($('bci')) $('bci').focus();
 
   showNotif(`📒 Utang recorded for ${c.name} — ₱${tot.toFixed(2)} due ${new Date(dueDate).toLocaleDateString('en-PH')}`);
