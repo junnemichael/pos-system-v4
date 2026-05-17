@@ -10919,10 +10919,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
            </div>
          </div>
          <div class="card" id="gcrates-card" style="background:var(--sf2)">
-           <div class="ctit">Fee rates (%)</div>
-           <div id="gcrates" style="margin-bottom:10px"></div>
-           <div id="gcrates-footer"></div>
-        <div class="card" id="gcash-tiers-section" style="margin-top:10px"></div>
+           <div id="gcash-tiers-section"></div>
            <div id="gc-capital-section" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--bd)"></div>
          </div>
        </div>
@@ -11011,14 +11008,17 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
       <div class="card">
         <div class="ctit" id="uft">Register new user</div>
         <input type="hidden" id="ufid"/>
-        <div class="fi"><label class="fl">Full name</label><input type="text" id="ufn"/></div>
-        <div class="fi"><label class="fl">Username</label><input type="text" id="ufun"/></div>
-        <div class="fi"><label class="fl">Password</label><input type="password" id="ufpw"/></div>
-        <div class="fi"><label class="fl">Confirm password</label><input type="password" id="ufpw2"/></div>
+        <div class="fi"><label class="fl">Full name</label><input type="text" id="ufn" autocomplete="off"/></div>
+        <div class="fi"><label class="fl">Username</label><input type="text" id="ufun" autocomplete="off"/></div>
+        <div class="fi"><label class="fl">Password</label><input type="password" id="ufpw" autocomplete="new-password"/></div>
+        <div class="fi"><label class="fl">Confirm password</label><input type="password" id="ufpw2" autocomplete="new-password"/></div>
         <div class="fi"><label class="fl">Role</label>
           <select id="ufrl"><option value="cashier">Cashier</option><option value="admin">Admin</option></select></div>
         <div id="ufmsg"></div>
-        <div style="display:flex;gap:8px"><button class="btn bp" style="flex:1" onclick="saveUser()">💾 Save</button><button class="btn" onclick="clearUF()">Clear</button></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn bp" style="flex:1" onclick="saveUser()">💾 Save</button>
+          <button class="btn" onclick="clearUF()" id="uf-clear-btn">✕ Clear</button>
+        </div>
       </div>
       <div>
         <div class="card"><div class="ctit">Users</div><div id="usrlist"></div></div>
@@ -12456,12 +12456,12 @@ const _DEFAULT_STATE = {
     creditPenaltyType:   'fixed', // 'fixed' | 'percent'
     creditPenaltyValue:  20,    // ₱20 fixed OR e.g. 2 for 2% per month
     creditAutoBlockDays: 7,     // days overdue before auto-block
-    gcashTiers: [               // tiered fee table — editable in GCash settings
-      { max: 500,  fee: 5  },
-      { max: 1000, fee: 10 },
-      { max: 2000, fee: 15 },
-      { max: 5000, fee: 20 },
-      { fee: 25 },              // catch-all above ₱5,000
+    gcashTiers: [               // tiered fee table — editable in GCash settings (% of amount)
+      { max: 500,  pct: 1.0 },
+      { max: 1000, pct: 1.0 },
+      { max: 2000, pct: 1.0 },
+      { max: 5000, pct: 1.0 },
+      { pct: 1.0 },             // catch-all above ₱5,000
     ],
   },
   darkMode: false,
@@ -12592,16 +12592,6 @@ function secClearTimers() {
   if (SEC._sessionTimer) { clearTimeout(SEC._sessionTimer); SEC._sessionTimer = null; }
 }
 
-function secShowLockScreen() {
-  const ov = $('sec-lock-screen');
-  if (!ov || !CU) return;
-  $('sec-lock-name').textContent = CU.nm || 'User';
-  $('sec-lock-pw').value         = '';
-  $('sec-lock-msg').textContent  = '';
-  ov.style.display = 'flex';
-  setTimeout(() => $('sec-lock-pw')?.focus(), 100);
-}
-
 async function secUnlock() {
   const pw    = $('sec-lock-pw')?.value || '';
   const msgEl = $('sec-lock-msg');
@@ -12644,7 +12634,7 @@ async function secUnlock() {
           style="padding:14px;font-size:18px;border:1px solid var(--bd);
                  border-radius:var(--rs);background:var(--sf2);cursor:pointer;font-family:inherit">⌫</button>
       </div>
-      <div id="sec-lock-msg" style="color:var(--rd);font-size:12px;min-height:18px;margin-bottom:8px"></div>
+      <div id="sec-pin-msg" style="color:var(--rd);font-size:12px;min-height:18px;margin-bottom:8px"></div>
       <button onclick="secSwitchToPassword()"
         style="background:none;border:none;color:var(--tx3);font-size:12px;cursor:pointer;font-family:inherit;text-decoration:underline">
         Use password instead
@@ -12765,8 +12755,10 @@ async function pinVerify(digits) {
 function secShowLockScreen() {
   const ov = $('sec-lock-screen');
   if (!ov || !CU) return;
-  const user        = S.users.find(u => u.id === CU.id);
-  const hasPIN      = !!user?.pin;
+  // Always do a fresh lookup of the user's PIN from S.users (may have been set by admin)
+  const user    = S.users.find(u => u.id === CU.id);
+  const hasPIN  = !!(user?.pin);
+  CU._hasPIN    = hasPIN; // keep CU in sync
   $('sec-lock-name').textContent = CU.nm || 'User';
   $('sec-lock-pw').value         = '';
   $('sec-lock-msg').textContent  = '';
@@ -12806,7 +12798,7 @@ function secPINBack() {
 
 async function secPINSubmit() {
   const valid = await pinVerify(PIN._digits);
-  const msgEl = $('sec-lock-msg');
+  const msgEl = $('sec-pin-msg');
   if (valid) {
     const ov = $('sec-lock-screen');
     if (ov) ov.style.display = 'none';
@@ -14583,6 +14575,9 @@ const dataStore = {
       if (raw) {
         try {
           const parsed = JSON.parse(raw);
+          // Preserve in-memory users if they're newer than what IDB has.
+          // This prevents a race where IDB hasn't flushed yet after createUser/updateUser.
+          const memUsers = (S.users || []).filter(u => u && u.un);
           S = { ..._DEFAULT_STATE, ...parsed };
           if (!S.categories || !S.categories.length)
             S.categories = [..._DEFAULT_STATE.categories];
@@ -14597,6 +14592,20 @@ const dataStore = {
           if (!S._syncMeta)        S._syncMeta = { ..._DEFAULT_STATE._syncMeta };
           if (!S._syncMeta.deviceId) {
             S._syncMeta.deviceId = 'dev_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+          }
+          // Merge: for each in-memory user, if it's newer than the IDB version, keep the in-memory one
+          if (memUsers.length) {
+            memUsers.forEach(memU => {
+              const idbIdx = S.users.findIndex(u => u.id === memU.id);
+              if (idbIdx < 0) {
+                // User exists in memory but not IDB yet (IDB write pending) — keep it
+                S.users.push(memU);
+              } else {
+                const memTs  = memU._updatedAt || memU.created || '';
+                const idbTs  = S.users[idbIdx]._updatedAt || S.users[idbIdx].created || '';
+                if (memTs > idbTs) S.users[idbIdx] = memU; // in-memory is newer
+              }
+            });
           }
           try { localStorage.setItem(SK, raw); } catch(e) {}
         } catch(e) {}
@@ -14768,6 +14777,7 @@ const dataStore = {
 
   // ── USERS ───────────────────────────────────────────────────────
   createUser(user) {
+    user._updatedAt = new Date().toISOString();
     changeTracker.stamp(user, 'create', true);
     S.users.push(user);
     this._persist();
@@ -15062,7 +15072,7 @@ setTimeout(function restoreSession(){
     try{
       const match=S.users.find(u=>u.id===saved.id);
       if(!match){try{sessionStorage.removeItem('kyries_cu');}catch(e){}return;}
-      CU={id:match.id,nm:match.nm,un:match.un,role:match.role,created:match.created||''};
+      CU={id:match.id,nm:match.nm,un:match.un,role:match.role,created:match.created||'',_hasPIN:!!match.pin};
       if(CU.role!=='admin'&&CU.role!=='cashier')CU.role='cashier';
       $('LS').style.display='none';
       $('AP').style.cssText='display:flex;flex-direction:column';
@@ -15110,7 +15120,7 @@ async function doLogin(){
   if(!valid){$('le').textContent='❌ Incorrect username or password.';return;}
 
   // Deep-copy user object so CU is fully independent of S.users reference
-  CU={id:user.id,nm:user.nm,un:user.un,role:user.role,created:user.created||''};
+  CU={id:user.id,nm:user.nm,un:user.un,role:user.role,created:user.created||'',_hasPIN:!!user.pin};
   // Verify role is a known value — prevents any accidental role corruption
   if(CU.role!=='admin'&&CU.role!=='cashier')CU.role='cashier';
 
@@ -15191,6 +15201,8 @@ function doLogout(){
   const tb=$('tabs');if(tb)tb.innerHTML='';
   const mn=$('mobnavinner');if(mn)mn.innerHTML='';
   $('AP').style.display='none';
+  // Always hide lock screen overlay so login screen is accessible
+  const lockOv=$('sec-lock-screen');if(lockOv)lockOv.style.display='none';
   $('LS').style.display='flex';
   $('lu').value='';$('lp').value='';$('le').textContent='';
 }
@@ -16841,18 +16853,23 @@ function expInvLogCSV(){
 // ║  § 10  GCASH MODULE                                              ║
 // ╚══════════════════════════════════════════════════════════════════╝
 /**
- * Calculates GCash fee — supports both legacy flat % rate and new tiered fee table.
- * Tiered fees: gcashTiers array in settings, e.g. [{max:500,fee:5},{max:1000,fee:10},{max:2000,fee:15},{fee:20}]
- * Falls back to flat % rate if no tiers configured.
+ * Calculates GCash fee — supports both legacy flat % rate and new tiered % fee table.
+ * Tiered fees: gcashTiers array in settings, e.g. [{max:500,pct:1},{max:1000,pct:1},{max:2000,pct:1.5},{pct:2}]
+ * Each tier fee = amount * pct / 100. Falls back to flat % rate if no tiers configured.
  */
 function calcGcashFee(amount, type) {
   const tiers = S.settings?.gcashTiers;
   if (tiers && Array.isArray(tiers) && tiers.length > 0) {
     // Tiered: find the tier whose max >= amount (last tier = catch-all)
     for (const tier of tiers) {
-      if (!tier.max || amount <= tier.max) return tier.fee || 0;
+      if (!tier.max || amount <= tier.max) {
+        const pct = tier.pct ?? tier.fee ?? 0; // backward compat: old 'fee' field treated as pct
+        return parseFloat((amount * pct / 100).toFixed(2));
+      }
     }
-    return tiers[tiers.length - 1].fee || 0;
+    const last = tiers[tiers.length - 1];
+    const pct = last.pct ?? last.fee ?? 0;
+    return parseFloat((amount * pct / 100).toFixed(2));
   }
   // Legacy flat % rate
   const rate = (S.gcashRates || {})[type] || 1.5;
@@ -16865,9 +16882,9 @@ function calcGF(){
   if (a > 0) {
     const fee  = calcGcashFee(a, type);
     const tiers= S.settings?.gcashTiers;
-    const desc = tiers?.length
-      ? `Tiered fee for ${peso(a)} = ${peso(fee)}`
-      : `${(S.gcashRates||{})[type]||1.5}% of ${peso(a)} = ${peso(fee)}`;
+    const matchedTier = tiers?.find(t=>!t.max||a<=t.max)||tiers?.[tiers.length-1];
+    const pct = matchedTier?(matchedTier.pct??matchedTier.fee??1):1;
+    const desc = `Tiered ${pct}% fee for ${peso(a)} = ${peso(fee)}`;
     $('gch').style.display = 'block';
     $('gch').textContent   = desc;
     $('gcf').value         = fee.toFixed(2);
@@ -16929,18 +16946,9 @@ function renderGC(){
   $('gctd').textContent=peso(S.gcashTodayFees||0);$('gcal').textContent=peso(S.gcashAllFees||0);
   // Always rebuild rates based on current role — do NOT cache with children.length check
   const ratesEl=$('gcrates');
-  if(ratesEl){
-    const types=['Cash In','Cash Out','Send Money','Load / Bills Payment','Padala'],rates=S.gcashRates||{};
-    if(isAd()){
-      ratesEl.innerHTML=types.map(t=>`<div class="fi"><label class="fl">${t}</label><div style="display:flex;align-items:center;gap:5px"><input type="number" step="0.1" id="gr-${t.replace(/[\s\/]/g,'_')}" value="${rates[t]||1.5}" style="width:80px"/><span style="font-size:13px;color:var(--tx2)">%</span></div></div>`).join('');
-    } else {
-      ratesEl.innerHTML=types.map(t=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bd);font-size:13px"><span style="color:var(--tx2)">${t}</span><span class="badge bgg">${rates[t]||1.5}%</span></div>`).join('');
-    }
-  }
+  if(ratesEl) ratesEl.innerHTML='';
   const ratesFooter=$('gcrates-footer');
-  if(ratesFooter){
-    ratesFooter.innerHTML=isAd()?`<button class="btn bp bs" style="margin-top:8px" onclick="saveGR()">💾 Save Rates</button>`:'<div style="font-size:12px;color:var(--tx2);margin-top:6px">ℹ️ Fee rates are set by admin only.</div>';
-  }
+  if(ratesFooter) ratesFooter.innerHTML='';
 
   // ── Wallet capital field — inside the rates card ───────────────
   // Admin: editable with password confirmation. Cashier: read-only.
@@ -17010,25 +17018,27 @@ function renderGCashTiers(){
   el.innerHTML=`
     <div class="ctit">📊 Tiered Fee Table</div>
     <div style="font-size:12px;color:var(--tx2);margin-bottom:8px;line-height:1.55">
-      Set fixed peso fees per transaction amount range. Overrides the percentage rates above when enabled.
+      Set a <strong>percentage (%)</strong> fee per transaction amount range. Fee = amount × rate%.
       <strong>Last row = catch-all</strong> for amounts above the highest tier.
     </div>
     <div id="gcash-tiers-list" style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px">
-      ${tiers.map((t,i)=>`
+      ${tiers.map((t,i)=>{
+        const pct = t.pct ?? t.fee ?? 0;
+        return `
         <div style="display:flex;gap:6px;align-items:center;font-size:12px">
           <span style="color:var(--tx2);min-width:80px">${t.max?'Up to '+peso(t.max):'Above all'}</span>
-          <span style="color:var(--tx2)">→ Fee:</span>
-          <input type="number" value="${t.fee}" min="0" step="1"
-            id="gtier-fee-${i}" style="width:70px;font-size:12px"/>
-          <span style="color:var(--tx2)">₱</span>
+          <span style="color:var(--tx2)">→ Rate:</span>
+          <input type="number" value="${pct}" min="0" step="0.1" max="100"
+            id="gtier-pct-${i}" style="width:70px;font-size:12px"/>
+          <span style="color:var(--tx2)">%</span>
           ${i<tiers.length-1?`<input type="number" value="${t.max||''}" min="0" step="100"
-            id="gtier-max-${i}" placeholder="max" style="width:80px;font-size:12px"/>
+            id="gtier-max-${i}" placeholder="max ₱" style="width:80px;font-size:12px"/>
             <span style="color:var(--tx3);font-size:10px">upper limit</span>`
             :'<span style="color:var(--tx3);font-size:10px;font-style:italic">catch-all</span>'}
-        </div>`).join('')}
+        </div>`}).join('')}
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn bp bs" onclick="saveGCashTiers()">💾 Save Tiers</button>
+      <button class="btn bp bs" onclick="saveGCashTiers()">💾 Save Rates</button>
       <button class="btn bs" onclick="addGCashTier()">+ Add Tier</button>
       <button class="btn bs" style="color:var(--rd);border-color:var(--rd)" onclick="resetGCashTiers()">↺ Reset Defaults</button>
     </div>
@@ -17038,34 +17048,39 @@ function renderGCashTiers(){
 function saveGCashTiers(){
   const tiers=(S.settings?.gcashTiers)||[];
   const newTiers=tiers.map((t,i)=>{
-    const fee=parseFloat($(`gtier-fee-${i}`)?.value)||0;
+    const pct=parseFloat($(`gtier-pct-${i}`)?.value)||0;
     const maxEl=$(`gtier-max-${i}`);
     const max=maxEl?parseFloat(maxEl.value)||null:null;
-    return max?{max,fee}:{fee};
-  }).filter(t=>t.fee>=0);
+    return max?{max,pct}:{pct};
+  }).filter(t=>t.pct>=0);
   if(!S.settings)S.settings={..._DEFAULT_STATE.settings};
   S.settings.gcashTiers=newTiers;
   dataStore._persist();
-  showMsg('gcash-tiers-msg','✅ Tiered fees saved!','alg');
+  showMsg('gcash-tiers-msg','✅ Tiered rates saved!','alg');
   auditLog('settings_saved','GCash tiered fees updated');
 }
 
 function addGCashTier(){
   if(!S.settings)S.settings={..._DEFAULT_STATE.settings};
   const tiers=S.settings.gcashTiers||[];
-  const last=tiers.pop()||{fee:25}; // remove catch-all
-  tiers.push({max:tiers.length?((tiers[tiers.length-1]?.max||0)+1000):1000,fee:last.fee});
-  tiers.push({fee:last.fee}); // re-add catch-all
+  const last=tiers.pop()||{pct:1}; // remove catch-all
+  // auto-increment pct: each new tier goes up by 0.25, starting from 1.0
+  const prevTier=tiers.length?tiers[tiers.length-1]:null;
+  const prevPct=prevTier?(prevTier.pct??prevTier.fee??1):0.75;
+  const newPct=Math.round((prevPct+0.25)*100)/100;
+  const newMax=tiers.length?((tiers[tiers.length-1]?.max||0)+1000):1000;
+  tiers.push({max:newMax,pct:newPct});
+  tiers.push({pct:Math.round((newPct+0.25)*100)/100}); // catch-all one step higher
   S.settings.gcashTiers=tiers;
   dataStore._persist();
   renderGCashTiers();
 }
 
 function resetGCashTiers(){
-  if(!confirm('Reset to default tiered fees?'))return;
+  if(!confirm('Reset to default tiered rates?'))return;
   if(!S.settings)S.settings={..._DEFAULT_STATE.settings};
   S.settings.gcashTiers=[
-    {max:500,fee:5},{max:1000,fee:10},{max:2000,fee:15},{max:5000,fee:20},{fee:25}
+    {max:500,pct:1.0},{max:1000,pct:1.0},{max:2000,pct:1.0},{max:5000,pct:1.0},{pct:1.0}
   ];
   dataStore._persist();
   renderGCashTiers();
@@ -17708,6 +17723,7 @@ async function adminSetUserPIN(userId) {
   u.pin = await secHash(pin1);
   u._updatedAt = new Date().toISOString();
   dataStore.updateUser(userId, { pin: u.pin });
+  if (CU && CU.id === userId) CU._hasPIN = true; // update live session
   auditLog('pin_set', `Admin set PIN for ${u.nm}`, userId);
   showNotif(`🔢 PIN set for ${u.nm}`);
   renderUsers();
@@ -17747,8 +17763,33 @@ async function saveUser(){
   }
   renderUsers();clearUF();showMsg('ufmsg',`✅ "${nm}" saved!`,'alg');
 }
-function clearUF(){['ufid','ufn','ufun','ufpw','ufpw2'].forEach(id=>$(id).value='');$('ufrl').value='cashier';$('uft').textContent='Register new user';}
-function editU(id){const u=S.users.find(x=>x.id===id);if(!u)return;$('ufid').value=u.id;$('ufn').value=u.nm;$('ufun').value=u.un;$('ufpw').value='';$('ufpw2').value='';$('ufrl').value=u.role;$('uft').textContent='Editing: '+u.nm;}
+function clearUF(){
+  ['ufid','ufn','ufun','ufpw','ufpw2'].forEach(id=>$(id).value='');
+  $('ufrl').value='cashier';
+  $('uft').textContent='Register new user';
+  $('uft').style.color='';
+  const btn=$('uf-clear-btn');
+  if(btn){btn.textContent='✕ Clear';btn.style.background='';}
+  $('ufmsg').textContent='';
+}
+function editU(id){
+  const u=S.users.find(x=>x.id===id);
+  if(!u)return;
+  $('ufid').value=u.id;
+  $('ufn').value=u.nm;
+  $('ufun').value=u.un;
+  $('ufpw').value='';
+  $('ufpw2').value='';
+  $('ufrl').value=u.role;
+  $('uft').textContent='✏️ Editing: '+u.nm;
+  $('uft').style.color='var(--am)';
+  const btn=$('uf-clear-btn');
+  if(btn){btn.textContent='✕ Cancel Edit';btn.style.background='var(--rdb)';}
+  $('ufmsg').textContent='';
+  // Scroll form into view
+  const form=$('uft');
+  if(form)form.scrollIntoView({behavior:'smooth',block:'start'});
+}
 function confDelU(id){
   if(id==='admin'){showMsg('mdud','❌ Cannot remove owner.','alr');return;}
   const u=S.users.find(x=>x.id===id);if(!u)return;
