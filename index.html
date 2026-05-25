@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- Kyrie's Store Point of Sale System
-     Version: KPOS.V8.3
+     Version: KPOS.V9.0.C
      Storage: IndexedDB (scalable, offline-first)
      Architecture: Single-file, zero dependencies
 -->
@@ -12,12 +12,12 @@
 <meta name="apple-mobile-web-app-title" content="Kyrie's POS"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#15803d"/>
-<title>Kyrie's Store POS — KPOS.V8.3</title>
+<title>Kyrie's Store POS — KPOS.V9.0.C</title>
 <style>
 :root{--bg:#f4f4f0;--sf:#fff;--sf2:#f0efe9;--bd:#e2e1da;--tx:#1c1c1a;--tx2:#6a6a60;--tx3:#a0a090;--gn:#15803d;--gnb:#dcfce7;--gnt:#14532d;--gnl:#bbf7d0;--am:#b45309;--amb:#fef3c7;--amt:#78350f;--rd:#b91c1c;--rdb:#fee2e2;--rdt:#7f1d1d;--bl:#1d4ed8;--blb:#dbeafe;--blt:#1e3a8a;--pu:#7c3aed;--pub:#ede9fe;--put:#4c1d95;--or:#c2410c;--orb:#ffedd5;--ort:#7c2d12;--r:10px;--rs:6px;--rl:14px}
 [data-theme=dark]{--bg:#111;--sf:#1c1c1a;--sf2:#252523;--bd:#333;--tx:#f0f0ec;--tx2:#a0a090;--tx3:#555;--gn:#22c55e;--gnb:#052e16;--gnt:#86efac;--gnl:#166534;--am:#fbbf24;--amb:#451a03;--amt:#fcd34d;--rd:#f87171;--rdb:#450a0a;--rdt:#fca5a5;--bl:#60a5fa;--blb:#1e3a5f;--blt:#93c5fd;--pu:#a78bfa;--pub:#2e1065;--put:#c4b5fd;--or:#fb923c;--orb:#431407;--ort:#fdba74}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--tx);font-size:14px;min-height:100vh;transition:background .2s,color .2s}
+html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--tx);font-size:13px;transition:background .2s,color .2s}
 /* LOGIN */
 #LS{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#065f46,#14532d)}
 .lc{background:var(--sf);border-radius:var(--rl);padding:40px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
@@ -26,7 +26,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .lbtn{width:100%;padding:12px;background:var(--gn);color:#fff;border:none;border-radius:var(--rs);font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
 .lbtn:hover{opacity:.9}
 /* APP */
-#AP{display:none;flex-direction:column;min-height:100vh}
+#AP{display:none;flex-direction:column;height:100vh;overflow:hidden}
 /* TOPBAR */
 .tb{background:var(--gn);color:#fff;padding:0 14px;display:flex;align-items:center;justify-content:space-between;height:52px;position:fixed;top:0;left:0;right:0;z-index:1000}
 .tabs{background:var(--sf);border-bottom:1px solid var(--bd);padding:0 10px;display:flex;overflow-x:auto;scrollbar-width:none;position:fixed;top:52px;left:0;right:0;z-index:990}
@@ -41,8 +41,10 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .tab:hover{color:var(--tx)}.tab.active{color:var(--gn);border-bottom-color:var(--gn);font-weight:700}
 .tbadge{background:var(--rd);color:#fff;font-size:10px;padding:1px 5px;border-radius:20px;font-weight:700;margin-left:3px}
 /* CONTENT */
-.ct{padding:16px;max-width:1300px;margin:0 auto;width:100%;flex:1}
+.ct{padding:16px;max-width:1300px;margin:0 auto;width:100%}
 .panel{display:none}.panel.active{display:block;animation:fadeSlideIn .18s ease both}
+/* Non-POS panels: scrollable main area */
+#AP>.scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
 @keyframes fadeSlideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 /* CARD */
 .card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.07);transition:box-shadow .15s}
@@ -94,14 +96,14 @@ tbody tr{cursor:pointer}tbody tr:hover td{background:var(--sf2)}
 .sr input{flex:1;font-size:15px;border-color:var(--gn)}
 .ci{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--bd)}
 .ci:last-child{border-bottom:none}
-.qb{width:27px;height:27px;border:1px solid var(--bd);border-radius:var(--rs);cursor:pointer;background:var(--sf2);font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.qb{width:24px;height:24px;border:1px solid var(--bd);border-radius:var(--rs);cursor:pointer;background:var(--sf2);font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center}
 .qb:hover{background:var(--bd)}
 .rb{color:var(--rd);cursor:pointer;font-size:19px;padding:0 3px;border:none;background:none}
 .tbox{background:var(--sf2);border:1px solid var(--bd);border-radius:var(--r);padding:14px;margin-top:10px}
 .trow{display:flex;justify-content:space-between;padding:4px 0;font-size:13px;color:var(--tx2)}
 .tbig{display:flex;justify-content:space-between;padding:8px 0;font-size:20px;font-weight:700;border-top:1px solid var(--bd);margin-top:4px;color:var(--gn)}
 /* PROD GRID */
-.pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:7px;max-height:280px;overflow-y:auto;margin-bottom:10px}
+.pg{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;margin-bottom:0}
 .pt{background:var(--sf);border:1px solid var(--bd);border-radius:var(--rs);padding:9px;cursor:pointer;text-align:center;transition:all .15s}
 .pt:hover{border-color:var(--gn);background:var(--gnb);transform:translateY(-1px)}
 .pt.out{opacity:.4;cursor:not-allowed;pointer-events:none}
@@ -110,10 +112,12 @@ tbody tr{cursor:pointer}tbody tr:hover td{background:var(--sf2)}
 .cr_{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
 .cb_{padding:5px 10px;border:1px solid var(--bd);border-radius:20px;font-size:12px;cursor:pointer;background:var(--sf);font-family:inherit;color:var(--tx2);transition:all .15s}
 .cb_.on{background:var(--gn);color:#fff;border-color:var(--gn)}.cb_:hover:not(.on){background:var(--sf2)}
-/* MODAL */
-.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;animation:fadeIn .15s ease both}
+/* MODAL — universally fitted, scrollable content, fixed viewport */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;padding:16px;overflow:hidden;animation:fadeIn .15s ease both}
 .ov.show{display:flex}
-.mo{background:var(--sf);border-radius:var(--rl);padding:24px;width:100%;max-width:500px;box-shadow:0 25px 60px rgba(0,0,0,.3);margin:auto;animation:slideUp .2s cubic-bezier(.34,1.56,.64,1) both}
+.mo{background:var(--sf);border-radius:var(--rl);padding:24px;width:100%;max-width:500px;max-height:calc(100vh - 32px);overflow-y:auto;-webkit-overflow-scrolling:touch;box-shadow:0 25px 60px rgba(0,0,0,.3);animation:slideUp .2s cubic-bezier(.34,1.56,.64,1) both;display:flex;flex-direction:column}
+/* Modal inner scrollable zone */
+.mo-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes slideUp{from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:none}}
 /* Metric cards pop in */
@@ -214,7 +218,7 @@ tbody tr{cursor:pointer}tbody tr:hover td{background:var(--sf2)}
 
 /* Touch-friendly minimum tap targets */
 .btn{min-height:40px}
-.qb{width:34px;height:34px;font-size:17px}
+.qb{width:26px;height:26px;font-size:14px}
 input,select{min-height:40px}
 
 /* ═══════════════════════════════════════════════════════════
@@ -227,7 +231,8 @@ input,select{min-height:40px}
 
 /* ── DESKTOP / LARGE TABLET (≥769px) ──────────────────────── */
 @media(min-width:769px){
-  #AP{padding-top:95px}        /* topbar(52) + tab-bar(~43) */
+  #AP{padding-top:95px;height:100vh;overflow:hidden}        /* topbar(52) + tab-bar(~43) */
+  #scroll-wrap{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
   .tabs{
     display:flex;
     position:fixed;top:52px;left:0;right:0;
@@ -271,7 +276,8 @@ input,select{min-height:40px}
   #mobnav{display:block !important}
   .mnav-inner{display:flex}
   /* Content offset — topbar only (no tab bar), bottom nav at bottom */
-  #AP{padding-top:52px}
+  #AP{padding-top:52px;height:100vh;overflow:hidden}
+  #scroll-wrap{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
   .ct{padding:12px 12px calc(80px + env(safe-area-inset-bottom,0px)) 12px}
   /* Topbar compact */
   .tb{padding:0 12px;height:52px}
@@ -337,14 +343,24 @@ input,select{min-height:40px}
 #storebanner{
   background:linear-gradient(90deg,var(--amb),var(--orb));
   border-bottom:1px solid #fcd34d;
-  padding:6px 14px;
-  display:flex;align-items:center;justify-content:space-between;gap:10px;
-  font-size:12px;color:var(--amt);
+  padding:4px 14px;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  font-size:11px;color:var(--amt);
   position:sticky;top:52px;z-index:190;
-  flex-wrap:wrap;
+  flex-wrap:nowrap;
+  min-height:32px;
+  white-space:nowrap;
+  overflow:hidden;
+}
+#storebanner>div:first-child{
+  display:flex;align-items:center;gap:6px;
+  overflow:hidden;min-width:0;flex:1;
+}
+#storebanner #sbnr-msg{
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.85;
 }
 [data-theme=dark] #storebanner{background:linear-gradient(90deg,#451a03,#431407);border-color:#92400e;color:var(--amt)}
-.sbnr-dismiss{background:none;border:1px solid currentColor;border-radius:var(--rs);padding:2px 8px;font-size:11px;cursor:pointer;color:inherit;font-family:inherit;opacity:.8;flex-shrink:0}
+.sbnr-dismiss{background:none;border:1px solid currentColor;border-radius:var(--rs);padding:2px 7px;font-size:10px;cursor:pointer;color:inherit;font-family:inherit;opacity:.75;flex-shrink:0;white-space:nowrap}
 .sbnr-dismiss:hover{opacity:1}
 /* Settings section nav buttons */
 .st-section{animation:fadeSlideIn .15s ease both}
@@ -453,6 +469,106 @@ input,select,textarea{padding:10px 13px;font-size:14px}
 [data-theme=dark] #syncbar{background:linear-gradient(90deg,#052e16,#14532d);border-color:#166534;color:var(--gnt)}
 .syncpulse{width:8px;height:8px;border-radius:50%;background:var(--gn);animation:pulse10b 1.4s ease-in-out infinite;flex-shrink:0}
 @keyframes pulse10b{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+
+/* ═══════════════════════════════════════════════════════════
+   AQUA-STYLE POS LAYOUT  — fixed header+footer, scrollable body
+   ═══════════════════════════════════════════════════════════ */
+
+/* The scroll-wrapper wraps all panels and is the only scrolling area */
+#scroll-wrap{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column}
+
+/* POS panel overrides — fills the scroll-wrap completely, no scroll on outer */
+#tab-pos.active{display:flex!important;flex-direction:column;flex:1;overflow:hidden;padding:0;max-width:none;animation:fadeSlideIn .18s ease both}
+
+/* POS two-column layout */
+.pos-layout{display:flex;flex:1;overflow:hidden;gap:0}
+
+/* LEFT: product browse — flex column, own scroll */
+.pos-prods{flex:1;display:flex;flex-direction:column;border-right:1px solid var(--bd);overflow:hidden;min-width:0}
+.pos-hd{padding:10px 12px;border-bottom:1px solid var(--bd);background:var(--sf);flex-shrink:0}
+.pos-grid-wrap{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;align-content:start}
+
+/* RIGHT: cart panel — fixed width, flex column, no scroll on outer */
+.pos-cart{width:380px;display:flex;flex-direction:column;background:var(--sf);flex-shrink:0;overflow:hidden}
+.pos-cart-hd{padding:10px 12px;border-bottom:1px solid var(--bd);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--sf)}
+.pos-scan{padding:8px 12px;border-bottom:1px solid var(--bd);flex-shrink:0;background:var(--sf2)}
+.pos-cart-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 0}
+.pos-cart-tots{flex-shrink:0;border-top:1px solid var(--bd);padding:10px 12px}
+
+/* Credit alert strip inside POS */
+#tab-pos #pos-credit-strip{flex-shrink:0;padding:0 12px}
+/* scmsg inside POS */
+#tab-pos #scmsg{flex-shrink:0;padding:0 4px 2px}
+
+/* Receipt preview inside cart */
+#rcrd{flex-shrink:0;border-top:1px solid var(--bd);padding:10px 12px;background:var(--sf);overflow-y:auto;max-height:35vh}
+
+/* Product tile in new grid */
+.pt{background:var(--sf);border:1px solid var(--bd);border-radius:var(--rs);padding:8px 6px;cursor:pointer;text-align:center;transition:all .15s}
+.pt:hover{border-color:var(--gn);background:var(--gnb);transform:translateY(-1px)}
+.pt.out{opacity:.4;cursor:not-allowed;pointer-events:none}
+.pt-n{font-size:11px;font-weight:700;margin-bottom:2px;line-height:1.3;color:var(--tx)}
+.pt-p{font-size:13px;font-weight:700;color:var(--gn)}.pt-s{font-size:10px;color:var(--tx3)}
+
+/* Cart item row */
+.ci{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--bd)}
+.ci:last-child{border-bottom:none}
+
+/* Scan row in POS */
+.sr{display:flex;gap:6px;align-items:center}
+.sr input{flex:1;font-size:14px;border-color:var(--gn)}
+
+/* ── DESKTOP BREAKPOINT: POS ─────────────────────────────── */
+@media(min-width:769px){
+  .pos-cart{width:400px}
+  .pos-grid-wrap{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
+}
+
+/* ── TABLET ──────────────────────────────────────────────── */
+@media(min-width:769px) and (max-width:1024px){
+  .pos-cart{width:340px}
+  .pos-grid-wrap{grid-template-columns:repeat(auto-fill,minmax(95px,1fr))}
+}
+
+/* ── MOBILE POS layout — stack vertically ────────────────── */
+@media(max-width:768px){
+  #tab-pos.active{display:flex!important;flex-direction:column;flex:1;overflow:hidden}
+  .pos-layout{flex-direction:column}
+  .pos-prods{border-right:none;border-bottom:1px solid var(--bd);flex:0 0 auto;max-height:45vh}
+  .pos-cart{width:100%;flex:1;min-height:0}
+  .pos-grid-wrap{grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:5px;padding:8px}
+  .pos-cart-hd{padding:8px 10px}
+  .pos-scan{padding:6px 10px}
+  .pt{padding:7px 5px}
+  .pt-n{font-size:10px}
+  .pt-p{font-size:12px}
+  #tab-pos .mbt{flex-direction:column}
+}
+
+/* ── Font size tweaks for readability at smaller size ────── */
+.ctit{font-size:11px;letter-spacing:.07em}
+.tab{font-size:13px;padding:10px 14px;font-weight:600}
+.tab.active{font-weight:700}
+#tbn{font-size:16px!important;font-weight:800!important}
+.btn{font-size:12px;font-weight:600}
+.bp,.bd,.ba_{font-weight:700}
+.mv{font-size:22px}
+.fl{font-size:11px;margin-bottom:5px}
+input,select,textarea{padding:9px 12px;font-size:13px}
+th{font-size:10px;padding:8px 11px}
+td{padding:8px 11px;font-size:13px}
+
+/* ── SHAKE ANIMATION — wrong PIN / password / login ─────────────────── */
+@keyframes kposShake{
+  0%,100%{transform:translateX(0)}
+  15%{transform:translateX(-7px)}
+  30%{transform:translateX(6px)}
+  45%{transform:translateX(-5px)}
+  60%{transform:translateX(4px)}
+  75%{transform:translateX(-3px)}
+  90%{transform:translateX(2px)}
+}
+.kpos-shake{animation:kposShake .45s cubic-bezier(.36,.07,.19,.97) both}
 </style>
 <!-- 
   DEPLOYMENT NOTE (Vercel):
@@ -10615,12 +10731,15 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
     <button class="lbtn" onclick="doLogin()">Sign In</button>
     <div id="le" style="color:var(--rd);font-size:13px;text-align:center;margin-top:10px;min-height:18px"></div>
     <div style="text-align:center;margin-top:18px;font-size:11px;color:#9ca3af;letter-spacing:.03em">
-      Kyrie's Store POS &nbsp;·&nbsp; KPOS.V8.3 &nbsp;·&nbsp; Powered by IndexedDB
+      Kyrie's Store POS &nbsp;·&nbsp; KPOS.V9.0.C &nbsp;·&nbsp; Powered by IndexedDB
     </div>
   </div>
 </div>
 <!-- APP -->
 <div id="AP">
+  <!-- V9.0.C: GLOBAL NOTIFICATION BAR (top-right) -->
+  <div id="gnotif-bar" style="position:fixed;top:58px;right:16px;z-index:1200;pointer-events:none;display:flex;flex-direction:column;gap:4px;padding:0;max-width:380px;align-items:flex-end"></div>
+
   <div class="tb">
     <div style="display:flex;align-items:center;gap:10px">
       <span style="font-size:22px">🏪</span>
@@ -10640,6 +10759,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
         <span style="font-size:20px;line-height:1">🔔</span>
         <span id="ntfbadge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--rd);color:#fff;font-size:9px;font-weight:700;border-radius:10px;padding:1px 4px;min-width:14px;text-align:center;line-height:14px"></span>
       </div>
+      <!-- V9: Shift status indicator -->
+      <div id="shift-indicator" onclick="shiftQuickAction()" title="Shift status — click to manage" style="cursor:pointer;display:none;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;white-space:nowrap">⏱ No Shift</div>
       <div class="dmt" onclick="toggleDark()">
         <span style="font-size:14px" id="dmi">🌙</span>
         <div class="dms" id="dmsw"><div class="dmk"></div></div>
@@ -10648,6 +10769,11 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
         style="background:none;border:none;font-size:18px;cursor:pointer;
                padding:4px 6px;border-radius:var(--rs);color:var(--tx2);
                transition:color .15s" id="lockbtn">🔒</button>
+      <!-- V9.0.C: PIN quick-set button in topbar -->
+      <button onclick="openPinQuickModal()" title="Set / Change PIN" id="pin-topbar-btn"
+        style="background:none;border:none;font-size:16px;cursor:pointer;
+               padding:4px 6px;border-radius:var(--rs);color:var(--tx2);
+               transition:color .15s;display:none">🔢</button>
       <button class="ib" onclick="doLogout()">Sign Out</button>
     </div>
   </div>
@@ -10666,21 +10792,25 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
   </div>
   <!-- PHASE 8E: Persistent local storage mode banner -->
   <div id="storebanner" style="display:none">
-    <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
-      <span style="font-size:14px">💾</span>
-      <strong>Local Storage Mode</strong>
-      <span style="opacity:.8" id="sbnr-msg">Data is saved on this device only.</span>
-      <span id="sbnr-backup-warn" style="display:none;background:var(--rdb);color:var(--rdt);border-radius:10px;padding:1px 8px;font-size:11px;font-weight:700"></span>
+    <div>
+      <span style="font-size:12px;flex-shrink:0">💾</span>
+      <strong style="flex-shrink:0">Local Storage</strong>
+      <span id="sbnr-msg">Data is on this device only — never synced or backed up.</span>
+      <span id="sbnr-backup-warn" style="display:none;background:var(--rdb);color:var(--rdt);border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;flex-shrink:0"></span>
     </div>
-    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-      <button class="sbnr-dismiss" onclick="expData();updateStoreBanner()" title="Download backup now">📥 Backup now</button>
+    <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+      <button class="sbnr-dismiss" onclick="expData();updateStoreBanner()" title="Download backup now">📥 Backup</button>
       <button class="sbnr-dismiss" onclick="dismissBanner()" title="Hide for this session">✕</button>
     </div>
   </div>
   <!-- MOBILE BOTTOM NAV (≤640px only, populated by buildTabs) -->
   <div id="mobnav"><div class="mnav-inner" id="mobnavinner"></div></div>
+  <!-- SCROLL WRAP: all panels live here, this scrolls for non-POS views -->
+  <div id="scroll-wrap">
   <!-- DASHBOARD -->
   <div id="tab-dashboard" class="panel ct">
+    <!-- V9: Shift Management Banner -->
+    <div id="shift-banner" style="display:none;margin-bottom:14px"></div>
     <div class="mets" id="dm"></div>
     <!-- NOTIFICATION PANEL — Admin only -->
     <div id="dntf" style="display:none;margin-bottom:14px"></div>
@@ -10710,35 +10840,60 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
   <!-- POS -->
   <div id="tab-pos" class="panel ct">
     <!-- § 20 CREDIT ALERT STRIP — visible to cashier and admin in POS -->
-    <div id="pos-credit-strip" style="display:none;margin-bottom:10px"></div>
-    <div class="g2">
-      <div>
-        <div class="card">
-          <div class="ctit">Browse products</div>
-          <div style="margin-bottom:8px">
-            <input type="text" id="possrch" placeholder="🔍 Search products by name…" oninput="renderPG()" style="width:100%;font-size:13px"/>
+    <div id="pos-credit-strip" style="display:none"></div>
+    <!-- Global notification area for POS -->
+    <div id="scmsg"></div>
+    <!-- AQUA-STYLE POS LAYOUT: fixed header/footer, scrollable body -->
+    <div class="pos-layout">
+      <!-- LEFT: Browse products (scrollable grid) -->
+      <div class="pos-prods">
+        <div class="pos-hd">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px">
+            <span style="font-size:11px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em">Products</span>
           </div>
+          <input type="text" id="possrch" placeholder="🔍 Search by name…" oninput="renderPG()" style="width:100%;margin-bottom:7px"/>
           <div class="cr_" id="poscr"></div>
-          <div class="pg" id="posgr"></div>
         </div>
-        <div class="card">
-          <div class="ctit">Scan barcode</div>
-          <div class="sr"><input type="text" id="bci" placeholder="Scan or type name/barcode…"/><button class="btn bp" onclick="scanItem()">Add</button><button class="qr-scan-btn" onclick="qrOpen('pos')" title="Use camera to scan QR or barcode">📷 Camera</button></div>
-          <div id="scmsg"></div>
-        </div>
+        <!-- Scrollable product grid -->
+        <div class="pos-grid-wrap" id="posgr"></div>
       </div>
-      <div>
-        <div class="card">
-          <div class="ctit">Cart <span id="chdr" style="color:var(--tx3);font-weight:400;font-size:12px"></span></div>
-          <div id="cbody"><div style="text-align:center;padding:28px;color:var(--tx3)">Cart is empty</div></div>
-          <div id="ctot"></div>
+      <!-- RIGHT: Scan + Cart (fixed panel) -->
+      <div class="pos-cart">
+        <!-- Scan bar — fixed header of cart panel -->
+        <div class="pos-scan">
+          <div class="sr"><input type="text" id="bci" placeholder="📷 Scan or type barcode…"/><button class="btn bp" onclick="scanItem()">Add</button><button class="qr-scan-btn" onclick="qrOpen('pos')" title="Camera scan">📷</button></div>
         </div>
-        <div class="card" id="rcrd" style="display:none">
-          <div class="ctit" style="display:flex;justify-content:space-between;align-items:center">
-            <span>Receipt</span><button class="btn bs bo_" onclick="doPrint()">🖨 Print</button>
+        <!-- Cart header -->
+        <div class="pos-cart-hd">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em">Cart</span>
+            <span id="chdr" style="color:var(--tx3);font-weight:400;font-size:11px"></span>
           </div>
-          <div class="rc" id="rcd"></div>
-          <pre id="rpre" style="font-size:12px;font-family:'Courier New',monospace;white-space:pre-wrap;line-height:1.5;color:var(--tx)"></pre>
+          <div style="display:flex;align-items:center;gap:5px">
+            <button id="clr-cart-btn" onclick="clrCart()" style="display:none;padding:3px 8px;font-size:11px;background:var(--rdb);color:var(--rd);border:1px solid var(--rd);border-radius:var(--rs);cursor:pointer;font-family:inherit">🗑 Clear</button>
+            <div id="rcrd-btn" style="display:none;display:flex;gap:4px">
+              <button class="btn bs" style="font-size:11px" onclick="doPrint()">🖨 Print</button>
+              <button class="btn bs" style="font-size:11px" onclick="toggleReceiptPreview()">👁 View</button>
+            </div>
+          </div>
+        </div>
+        <!-- Scrollable cart items -->
+        <div id="cbody" class="pos-cart-body"><div style="text-align:center;padding:28px;color:var(--tx3)">Cart is empty</div></div>
+        <!-- Fixed checkout totals + pay buttons -->
+        <div id="ctot" class="pos-cart-tots"></div>
+        <!-- Receipt preview (hidden by default) -->
+        <div id="rcrd" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-top:1px solid var(--bd);background:var(--sf2)">
+            <span style="font-size:11px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em">Last Receipt</span>
+            <div style="display:flex;gap:5px">
+              <button class="btn bs bo_" onclick="doPrint()">🖨 Print</button>
+              <button class="btn bs" onclick="hideReceiptPreview()">✕</button>
+            </div>
+          </div>
+          <div style="padding:8px 12px;overflow-y:auto;max-height:30vh">
+            <div class="rc" id="rcd"></div>
+            <pre id="rpre" style="font-size:11px;font-family:'Courier New',monospace;white-space:pre-wrap;line-height:1.5;color:var(--tx)"></pre>
+          </div>
         </div>
       </div>
     </div>
@@ -10753,6 +10908,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
         <button class="btn bp bs" id="addbtn" onclick="openPM(null)">➕ Add Product</button>
         <button class="btn bs" onclick="openStockCtrl()">🔧 Stock Control</button>
         <button class="qr-scan-btn bs" onclick="qrOpen('inventory')" title="Scan QR/barcode to look up product" style="padding:6px 10px;font-size:12px">📷 Scan</button>
+        <button class="btn bs" onclick="exportAllQRCodes()" title="Export all product QR codes to printable PDF" style="font-size:12px">🖨 Export QR Codes</button>
       </div>
       <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">
         <input type="text" id="iq" placeholder="Search by name or barcode…" style="width:175px" oninput="renderInv()"/>
@@ -10809,8 +10965,30 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
         </div>
       </div>
       <!-- Search bar -->
-      <div style="margin-bottom:12px;display:flex;gap:7px;align-items:center">
+      <div style="margin-bottom:10px;display:flex;gap:7px;align-items:center">
         <input type="text" id="rtxnsrch" placeholder="🔍 Search by receipt, cashier, or item name…" style="flex:1;font-size:13px" oninput="renderRpt()"/>
+      </div>
+      <!-- V9: Universal filter row -->
+      <div style="margin-bottom:12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <select id="rpt-cashier" style="font-size:12px" onchange="renderRpt()">
+          <option value="">All Cashiers</option>
+        </select>
+        <select id="rpt-paytype" style="font-size:12px" onchange="renderRpt()">
+          <option value="">All Payment Types</option>
+          <option value="cash">💵 Cash</option>
+          <option value="gcash">📱 GCash</option>
+          <option value="credit">📒 Credit</option>
+        </select>
+        <select id="rpt-status" style="font-size:12px" onchange="renderRpt()">
+          <option value="">All Statuses</option>
+          <option value="completed">✅ Completed</option>
+          <option value="voided">🚫 Voided</option>
+          <option value="returned">↩ Returned</option>
+        </select>
+        <select id="rpt-shift" style="font-size:12px" onchange="renderRpt()">
+          <option value="">All Shifts</option>
+        </select>
+        <button class="btn bs" style="font-size:11px" onclick="rptResetFilters()">✕ Reset Filters</button>
       </div>
       <div class="mets" id="rmet"></div>
       <div class="g2">
@@ -10818,7 +10996,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
         <div class="card"><div class="ctit">Best sellers (period)</div><div id="rtop"></div></div>
       </div>
       <div class="card"><div class="ctit">Transaction log</div>
-        <div class="tbl"><table><thead><tr><th>Receipt</th><th>Date</th><th>Time</th><th>Cashier</th><th>Items</th><th>Total</th><th>Profit</th><th>Change</th><th>Status</th></tr></thead>
+        <div class="tbl"><table><thead><tr><th>Receipt</th><th>Date</th><th>Time</th><th>Cashier</th><th>Pay</th><th>Items</th><th>Total</th><th>Profit</th><th>Status</th></tr></thead>
         <tbody id="rtxns"></tbody></table></div>
       </div>
       <div style="display:flex;gap:8px;margin-top:10px">
@@ -10870,6 +11048,27 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
           <button class="btn bs"    id="gcr-all"   onclick="setGCRPeriod('all')">All Time</button>
         </div>
       </div>
+      <!-- V9: GCash universal filter row -->
+      <div style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <select id="gcr-cashier" style="font-size:12px" onchange="renderGCReport()">
+          <option value="">All Cashiers</option>
+        </select>
+        <select id="gcr-type" style="font-size:12px" onchange="renderGCReport()">
+          <option value="">All Types</option>
+          <option value="Cash In">Cash In</option>
+          <option value="Cash Out">Cash Out</option>
+          <option value="Send Money">Send Money</option>
+          <option value="Load / Bills Payment">Load / Bills</option>
+          <option value="Padala">Padala</option>
+        </select>
+        <select id="gcr-refno" style="font-size:12px" onchange="renderGCReport()">
+          <option value="">All Entries</option>
+          <option value="missing">⚠️ Missing Ref No.</option>
+          <option value="has">✅ Has Ref No.</option>
+        </select>
+        <input type="text" id="gcr-search" placeholder="🔍 Search customer…" style="font-size:12px;width:160px" oninput="renderGCReport()"/>
+        <button class="btn bs" style="font-size:11px" onclick="gcrResetFilters()">✕ Reset</button>
+      </div>
       <div id="gcr-wallet" style="margin-bottom:12px"></div>
       <div class="mets" id="gcr-met" style="margin-bottom:12px"></div>
       <div class="g2" style="margin-bottom:12px">
@@ -10879,7 +11078,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
       <div class="card">
         <div class="ctit">Full transaction log</div>
         <div class="tbl"><table>
-          <thead><tr><th>Date/Time</th><th>Customer</th><th>Type</th><th>Amount</th><th>Fee</th><th>By</th></tr></thead>
+          <thead><tr><th>Date/Time</th><th>Customer</th><th>Type</th><th>Amount</th><th>Fee</th><th>Ref No.</th><th>By</th></tr></thead>
           <tbody id="gcr-log"></tbody>
         </table></div>
       </div>
@@ -10911,6 +11110,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
            <div id="gc-wallet-warning"></div>
            <div id="gch" style="display:none" class="al alg"></div>
            <div class="fi"><label class="fl">Service fee earned (₱)</label><input type="number" id="gcf"/></div>
+           <!-- V9: Reference number for traceability -->
+           <div class="fi"><label class="fl">Reference No. <span style="font-size:10px;color:var(--tx2)">(optional but recommended)</span></label><input type="text" id="gcref" placeholder="GCash ref number e.g. 1234567890"/></div>
            <div id="gcmsg"></div>
            <button class="btn bp bf" onclick="logGC()">Log Transaction</button>
            <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--bd)">
@@ -11087,10 +11288,54 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
       <div id="insadvice"></div>
     </div>
 
+    <!-- Section 6: Restock suggestions -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="ctit">📦 Restock suggestions</div>
+      <div id="insrestock"></div>
+    </div>
+
+    <!-- Section 7: Business growth advice -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="ctit">💡 Business growth advice</div>
+      <div id="insadvice"></div>
+    </div>
+
     <!-- Section 8: Margin health -->
-    <div class="card">
+    <div class="card" style="margin-bottom:16px">
       <div class="ctit">💰 Margin health by product</div>
       <div id="insmargin"></div>
+    </div>
+
+    <!-- V9.0.B: Section 9: Cashier performance -->
+    <div class="g2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="ctit">👤 Cashier Performance</div>
+        <div id="ins-cashier-perf"></div>
+      </div>
+      <!-- Section 10: GCash analytics -->
+      <div class="card">
+        <div class="ctit">💳 GCash / Maya Analytics</div>
+        <div id="ins-gcash-analytics"></div>
+      </div>
+    </div>
+
+    <!-- V9.0.B: Section 11: Expense breakdown -->
+    <div class="g2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="ctit">🧾 Expense Breakdown</div>
+        <div id="ins-expense-breakdown"></div>
+      </div>
+      <!-- Section 12: Credit health -->
+      <div class="card">
+        <div class="ctit">📒 Credit / Utang Health</div>
+        <div id="ins-credit-health"></div>
+      </div>
+    </div>
+
+    <!-- V9.0.B: Section 13: Shift summary -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="ctit">⏱ Shift Summary</div>
+      <div id="ins-shift-summary"></div>
     </div>
   </div>
   <!-- REQUESTS (Admin + Cashier) -->
@@ -11123,7 +11368,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
     <div id="rqlist"></div>
   </div>
   <!-- ═══════════════════════════════════════════════════════════════
-       § 20  DEBT LEDGER TAB  —  KPOS.V8.3
+       § 20  DEBT LEDGER TAB  —  KPOS.V9.0.C
        Admin-only. Lists all registered credit customers.
        Cashier cannot access this tab directly.
        ═══════════════════════════════════════════════════════════════ -->
@@ -11134,8 +11379,9 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
       <div>
         <h2 style="font-size:17px;font-weight:700;margin:0">📒 Debt Ledger</h2>
         <p style="font-size:12px;color:var(--tx2);margin:2px 0 0">Manage customer credit accounts — register, track, collect</p>
+        <div id="cl-cashier-notice" style="display:none;margin-top:4px;font-size:11px;color:var(--amt);background:var(--amb);border:1px solid var(--am);border-radius:4px;padding:3px 8px">👁 View only — contact admin to register or block customers</div>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="cl-admin-header-btns">
         <button class="btn bs" onclick="expDebtLedgerExcel()" title="Export Debt Ledger to Excel">📊 Export Excel</button>
         <button class="btn bp" onclick="clOpenRegister()">➕ Register Customer</button>
       </div>
@@ -11188,7 +11434,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════════
-       REGISTER CREDIT CUSTOMER MODAL  —  KPOS.V8.3
+       REGISTER CREDIT CUSTOMER MODAL  —  KPOS.V9.0.C
        Admin-only. Requires face photo + signature + agreement.
        ═══════════════════════════════════════════════════════════════ -->
   <div class="ov" id="mcl-register">
@@ -11382,50 +11628,13 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════════
-       SECURITY PANEL — KPOS.V8.3
+       SECURITY PANEL — KPOS.V9.0.C
        PIN lock setup · Audit log viewer
        ═══════════════════════════════════════════════════════════════ -->
   <div id="tab-security" class="panel ct">
     <div style="margin-bottom:12px"><button class="btn bs" onclick="switchTab('settings')" style="font-size:12px;color:var(--tx2)">← Back to Settings</button></div>
-    <h2 style="font-size:17px;font-weight:700;margin-bottom:4px">🔐 Security</h2>
-    <p style="font-size:13px;color:var(--tx2);margin-bottom:16px">PIN lock, session management, and admin audit log.</p>
-
-    <!-- PIN Setup -->
-    <div class="card" style="margin-bottom:14px">
-      <div class="ctit">🔢 Quick PIN Lock</div>
-      <div style="font-size:12px;color:var(--tx2);margin-bottom:12px;line-height:1.6">
-        Set a 4-digit PIN for fast unlock when the screen locks from inactivity.
-        More convenient than typing your full password each time.
-      </div>
-      <div id="sec-pin-status" style="font-size:13px;margin-bottom:10px"></div>
-      <div class="g2">
-        <div class="fi"><label class="fl">New PIN (4 digits)</label>
-          <input type="password" id="sec-new-pin" maxlength="4" inputmode="numeric"
-            placeholder="••••" style="font-size:18px;letter-spacing:.3em;text-align:center"/></div>
-        <div class="fi"><label class="fl">Confirm PIN</label>
-          <input type="password" id="sec-confirm-pin" maxlength="4" inputmode="numeric"
-            placeholder="••••" style="font-size:18px;letter-spacing:.3em;text-align:center"/></div>
-      </div>
-      <div id="sec-pin-msg" style="margin-bottom:8px"></div>
-      <div style="display:flex;gap:8px">
-        <button class="btn bp" onclick="secSavePIN()">💾 Set PIN</button>
-        <button class="btn bs" id="sec-remove-pin-btn" onclick="secRemovePIN()" style="display:none;color:var(--rd);border-color:var(--rd)">🗑 Remove PIN</button>
-      </div>
-    </div>
-
-    <!-- Session Info -->
-    <div class="card" style="margin-bottom:14px">
-      <div class="ctit">⏱ Session & Lock Info</div>
-      <div style="font-size:13px;color:var(--tx2);line-height:1.8">
-        <div>🔒 <strong>Password hashing:</strong> PBKDF2 + SHA-256 · 100,000 iterations</div>
-        <div>⏰ <strong>Session timeout:</strong> 8 hours (auto-logout)</div>
-        <div>🔐 <strong>Idle lock:</strong> Configurable in Store Settings</div>
-        <div>🔑 <strong>Field encryption:</strong> AES-GCM (sensitive data)</div>
-      </div>
-      <div style="margin-top:10px">
-        <button class="btn bs" onclick="secShowLockScreen()" style="font-size:12px">🔒 Lock Screen Now</button>
-      </div>
-    </div>
+    <h2 style="font-size:17px;font-weight:700;margin-bottom:4px">📋 Audit Logs</h2>
+    <p style="font-size:13px;color:var(--tx2);margin-bottom:16px">Track all system activity — sales, logins, edits, and after-hours alerts.</p>
 
     <!-- Audit Log -->
     <div class="card">
@@ -11447,13 +11656,69 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
           <option value="payment">Payments</option>
           <option value="edit">Product edits</option>
           <option value="void">Void/Return</option>
-          <option value="backup">Backup</option>
+          <option value="afterhours">⚠️ After Hours Only</option>
+          <option value="backup">Backup/Restore</option>
           <option value="settings">Settings</option>
           <option value="pin">PIN changes</option>
+          <option value="shift">Shift events</option>
+          <option value="expense">Expenses</option>
         </select>
       </div>
       <div id="audit-log-list" style="max-height:400px;overflow-y:auto;-webkit-overflow-scrolling:touch">
         <div style="text-align:center;padding:20px;color:var(--tx3);font-size:13px">Loading…</div>
+      </div>
+    </div>
+
+    <!-- V9: Suspicious Activity Detection -->
+    <div class="card" style="margin-top:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div class="ctit" style="margin:0">🚨 Suspicious Activity Detection</div>
+        <button class="btn bs" style="font-size:11px" onclick="renderV9SecurityDashboard()">🔄 Scan Now</button>
+      </div>
+      <div style="font-size:12px;color:var(--tx2);margin-bottom:10px">
+        Auto-analyzes all cashier transactions, voids, refunds, inventory, and GCash for red flags.
+      </div>
+      <div id="v9-security-dash">
+        <div style="text-align:center;padding:20px;color:var(--tx3);font-size:13px">Click "Scan Now" to run analysis.</div>
+      </div>
+    </div>
+
+    <!-- V9: Shift History -->
+    <div class="card" style="margin-top:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div class="ctit" style="margin:0">⏱ Shift History</div>
+        <button class="btn bs" style="font-size:11px" onclick="renderShiftHistory()">🔄 Refresh</button>
+      </div>
+      <div style="font-size:12px;color:var(--tx2);margin-bottom:10px">
+        All shift open/close records with cash variance tracking.
+      </div>
+      <div id="v9-shift-history">
+        <div style="text-align:center;padding:20px;color:var(--tx3);font-size:13px">Loading…</div>
+      </div>
+    </div>
+
+    <!-- V9: Admin Investigation Dashboard -->
+    <div class="card" style="margin-top:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div class="ctit" style="margin:0">🔍 Cashier Investigation Dashboard</div>
+        <button class="btn bs" style="font-size:11px" onclick="renderInvestigationDash()">🔄 Refresh</button>
+      </div>
+      <div style="font-size:12px;color:var(--tx2);margin-bottom:10px">
+        Per-cashier breakdown: voids, returns, sales, GCash, expenses. Filter by cashier for deep investigation.
+      </div>
+      <div style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <select id="inv-cashier-filter" style="font-size:12px" onchange="renderInvestigationDash()">
+          <option value="">All Cashiers</option>
+        </select>
+        <select id="inv-period-filter" style="font-size:12px" onchange="renderInvestigationDash()">
+          <option value="all">All Time</option>
+          <option value="today">Today</option>
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+        </select>
+      </div>
+      <div id="v9-investigation-dash">
+        <div style="text-align:center;padding:20px;color:var(--tx3);font-size:13px">Click "Refresh" to load investigation data.</div>
       </div>
     </div>
   </div>
@@ -11533,7 +11798,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
     <!-- Row 1: Store management quick links -->
     <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Store Management</div>
     <div class="st-nav-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:20px">
-      <button class="st-nav-btn st-nav-btn-green" onclick="switchTab('aiassistant')">
+      <button class="st-nav-btn" onclick="switchTab('aiassistant')">
         <span class="st-nav-icon">🤖</span>
         <span class="st-nav-label">AI Assistant</span>
         <span class="st-nav-sub">Chat with your store AI</span>
@@ -11589,7 +11854,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
         <span class="st-nav-label">Password</span>
         <span class="st-nav-sub">Change admin password</span>
       </button>
-      <button class="st-nav-btn st-nav-btn-green" onclick="showStSection('st-data')">
+      <button class="st-nav-btn" onclick="showStSection('st-data')">
         <span class="st-nav-icon">🛡</span>
         <span class="st-nav-label">Data &amp; Backup</span>
         <span class="st-nav-sub">Export, import, sync</span>
@@ -11607,6 +11872,17 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
         <div class="fi"><label class="fl">Address</label><input type="text" id="sta"/></div>
         <div class="fi"><label class="fl">Contact</label><input type="text" id="stc"/></div>
         <div class="fi"><label class="fl">Receipt footer</label><input type="text" id="stf"/></div>
+        <!-- Store Hours — used to flag after-hours activity in audit log -->
+        <div class="fi">
+          <label class="fl">🕐 Store Opening Time</label>
+          <input type="time" id="stopen" onchange="saveSt()" style="font-size:14px"/>
+          <div style="font-size:11px;color:var(--tx3);margin-top:3px">Transactions before this time are flagged in the audit log</div>
+        </div>
+        <div class="fi">
+          <label class="fl">🕘 Store Closing Time</label>
+          <input type="time" id="stclose" onchange="saveSt()" style="font-size:14px"/>
+          <div style="font-size:11px;color:var(--tx3);margin-top:3px">Transactions after this time are flagged in the audit log</div>
+        </div>
         <div class="fi"><label class="fl">🔒 Idle Lock Timeout</label>
           <select id="stidlemin" onchange="saveSt()">
             <option value="15">15 minutes</option>
@@ -11717,6 +11993,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
               <button class="btn bs" id="impclear" onclick="clearImport()" style="display:none">✕ Clear</button>
             </div>
             <div id="impmsg" style="margin-top:8px"></div>
+            <!-- V9.0.B: per-collection merge report -->
+            <div id="imp-merge-detail"></div>
           </div>
 
           <!-- SYNC MANAGEMENT PANEL -->
@@ -11839,7 +12117,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 
     <!-- Version footer — always visible -->
     <div style="text-align:center;padding:16px 0 4px;font-size:11px;color:var(--tx3);letter-spacing:.04em">
-      Kyrie's Sari-Sari Store POS &nbsp;·&nbsp; <strong style="color:var(--gn)">KPOS.V8.3</strong> &nbsp;·&nbsp; Local-first · No cloud required · v7.0 — Code Cleanup + QR &nbsp;·&nbsp; AI Assistant &nbsp;·&nbsp; Smart Inventory
+      Kyrie's Sari-Sari Store POS &nbsp;·&nbsp; <strong style="color:var(--gn)">KPOS.V9.0.C</strong> &nbsp;·&nbsp; Local-first · No cloud required · v7.0 — Code Cleanup + QR &nbsp;·&nbsp; AI Assistant &nbsp;·&nbsp; Smart Inventory
     </div>
   </div>
 </div>
@@ -11891,7 +12169,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
   </div>
 </div>
   <!-- ═══════════════════════════════════════════════════════════════
-       CREDIT CHECKOUT MODAL  —  KPOS.V8.3
+       CREDIT CHECKOUT MODAL  —  KPOS.V9.0.C
        Cashier selects which registered customer to add utang to.
        Shows balance, limit, status clearly before confirming.
        ═══════════════════════════════════════════════════════════════ -->
@@ -11955,7 +12233,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
         </div>
         <div class="mbt">
           <button class="btn" onclick="closeM('mcl-checkout')">Cancel</button>
-          <button class="btn bp" id="mclco-confirm-btn" onclick="clConfirmCreditCheckout()">✅ Confirm Utang</button>
+          <button class="btn bp" id="mclco-confirm-btn" onclick="clShowUtangAmountConfirm()">✅ Confirm Utang</button>
         </div>
       </div>
 
@@ -11963,7 +12241,34 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════════
-       PAYMENT RECORDING MODAL  —  KPOS.V8.3 (multi-txn upgrade)
+       UTANG AMOUNT CONFIRMATION MODAL  —  KPOS.V9.0.D
+       Shows the total amount to the cashier and asks for explicit confirmation.
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="ov" id="mcl-utang-confirm">
+    <div class="mo" style="max-width:380px">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:36px;margin-bottom:6px">📒</div>
+        <h2 style="margin:0;font-size:17px;font-weight:800">Confirm Utang Amount</h2>
+        <p style="margin:6px 0 0;font-size:13px;color:var(--tx2)">Please verify before recording</p>
+      </div>
+      <div style="background:var(--gnb);border:2px solid var(--gnl);border-radius:var(--r);padding:16px;text-align:center;margin-bottom:14px">
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:4px">Customer</div>
+        <div style="font-weight:800;font-size:15px" id="uc-name">—</div>
+        <div style="font-size:28px;font-weight:900;color:var(--gn);margin:10px 0 4px" id="uc-amount">₱0.00</div>
+        <div style="font-size:12px;color:var(--tx2)" id="uc-items">0 items</div>
+      </div>
+      <div class="al ala" style="font-size:12px;margin-bottom:14px;text-align:center">
+        ⚠️ Is this amount correct? This will be recorded as <strong>utang/credit</strong>.
+      </div>
+      <div class="mbt" style="justify-content:center;gap:10px">
+        <button class="btn" style="min-width:90px" onclick="closeM('mcl-utang-confirm')">✕ Cancel</button>
+        <button class="btn bp" style="min-width:130px;font-size:14px;font-weight:700" onclick="clFinalConfirmUtang()">✅ Yes, Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       PAYMENT RECORDING MODAL  —  KPOS.V9.0.C (multi-txn upgrade)
        Supports selecting one or multiple transactions to pay at once.
        Select All calculates combined total. Full or partial payment.
        ═══════════════════════════════════════════════════════════════ -->
@@ -12063,7 +12368,29 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
     </div>
   </div>
 
-  <!-- CONTRACT VIEWER MODAL — KPOS.V8.3 patch -->
+  <!-- V9.0.C: PIN QUICK MODAL (accessible from topbar 🔢 button) -->
+  <div class="ov" id="pin-quick-modal" style="display:none">
+    <div class="mo" style="max-width:360px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="font-size:15px;font-weight:700">🔢 Quick PIN Lock</h3>
+        <button onclick="closePinQuickModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx2)">✕</button>
+      </div>
+      <div id="pin-quick-body"></div>
+    </div>
+  </div>
+
+  <!-- V9: SHIFT MANAGEMENT MODAL -->
+  <div class="ov" id="shift-modal" style="display:none">
+    <div class="mo" style="max-width:480px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="font-size:16px;font-weight:700">⏱ Shift Management</h3>
+        <button onclick="closeShiftModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx2)">✕</button>
+      </div>
+      <div id="shift-modal-body"></div>
+    </div>
+  </div>
+
+  <!-- CONTRACT VIEWER MODAL — KPOS.V9.0.C patch -->
   <div class="ov" id="mcl-contract">
     <div class="mo mol" style="max-width:620px;padding:0;overflow:hidden">
 
@@ -12419,6 +12746,36 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 const SK = 'kyries_v6';
 
 // ── DEFAULT STATE SHAPE ────────────────────────────────────────────
+// ── § V9  CENTRALIZED COLLECTION REGISTRY ─────────────────────────
+// Every collection/table stored inside S must be listed here.
+// Backup/restore/merge/export/sync systems reference this registry
+// so future additions are automatically included — just add the key.
+const DB_COLLECTIONS = [
+  'products',
+  'transactions',
+  'gcashLog',
+  'expenses',
+  'users',
+  'loginLog',
+  'pendingApprovals',
+  'invLog',
+  'notifSnooze',
+  'creditCustomers',
+  'creditTransactions',
+  'creditPayments',
+  'auditLog',
+  'shifts',            // V9 — shift management
+  'importHistory',     // V9 — import fingerprints (replay protection)
+];
+
+// Settings sub-keys that must survive merge (non-destructive merge only)
+const DB_SETTINGS_KEYS = [
+  'storeName', 'address', 'contact', 'footer',
+  'creditDefaultLimit', 'creditDueDays', 'creditGraceDays',
+  'creditPenaltyType', 'creditPenaltyValue', 'creditAutoBlockDays',
+  'gcashTiers',
+];
+
 const _DEFAULT_STATE = {
   products: [],
   transactions: [],
@@ -12444,6 +12801,10 @@ const _DEFAULT_STATE = {
   creditTransactions: [],  // individual utang records per customer
   creditPayments:     [],  // payment records linked to creditTransactions
 
+  // ── § V9  NEW COLLECTIONS ──────────────────────────────────────────
+  shifts:        [],  // shift open/close records (V9)
+  importHistory: [],  // import fingerprints for replay-attack prevention (V9)
+
   settings: {
     storeName: "Kyrie's Sari-Sari Store",
     address:   'Olongapo City, Zambales',
@@ -12456,8 +12817,8 @@ const _DEFAULT_STATE = {
     creditPenaltyType:   'fixed', // 'fixed' | 'percent'
     creditPenaltyValue:  20,    // ₱20 fixed OR e.g. 2 for 2% per month
     creditAutoBlockDays: 7,     // days overdue before auto-block
-    gcashTiers: [               // tiered fee table — editable in GCash settings (% of amount)
-      { max: 500,  pct: 1.0 },
+    gcashTiers: [               // tiered fee table — editable in GCash settings
+      { max: 500,  flat: 5 },  // V9.0.B: ≤₱500 = fixed ₱5 fee (not percentage)
       { max: 1000, pct: 1.0 },
       { max: 2000, pct: 1.0 },
       { max: 5000, pct: 1.0 },
@@ -12481,6 +12842,8 @@ const _DEFAULT_STATE = {
 // RULE: never mutate S directly from UI code — use dataStore methods.
 let S = { ..._DEFAULT_STATE };
 let CU = null, pf = 'All', pdel = null, pudel = null, lrec = '';
+let _pendingCashierLogin = false; // V9.0.C: set true when cashier needs to open shift on login
+let _pendingLogout = false;       // V9.0.C: set true when cashier needs to close shift before logout
 
 // ══════════════════════════════════════════════════════════════════
 //  SYNC QUEUE
@@ -12493,7 +12856,7 @@ const SYNC_QUEUE_KEY = 'kyries_syncq_v1';
 
 // ████████████████████████████████████████████████████████████████████████
 // ██                                                                    ██
-// ██         KYRIE'S SARI-SARI STORE POS  —  KPOS.V8.3               ██
+// ██         KYRIE'S SARI-SARI STORE POS  —  KPOS.V9.0.C               ██
 // ██                   APPLICATION CODE START                          ██
 // ██                                                                   ██
 // ██   TABLE OF CONTENTS                                               ██
@@ -12521,7 +12884,7 @@ const SYNC_QUEUE_KEY = 'kyries_syncq_v1';
 // ████████████████████████████████████████████████████████████████████████
 
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║  KPOS.V8.3 — SECURITY ENGINE                                    ║
+// ║  KPOS.V9.0.C — SECURITY ENGINE                                    ║
 // ║  PBKDF2 password hashing via Web Crypto API (no library)        ║
 // ║  One-time migration: btoa → PBKDF2 on first successful login    ║
 // ║  Session timeout (8h) + idle lock screen (30min)                ║
@@ -12601,6 +12964,8 @@ async function secUnlock() {
   const { valid, needsMigration } = await secVerify(pw, user.pw);
   if (!valid) {
     if (msgEl) msgEl.textContent = '❌ Wrong password.';
+    shakeEl('sec-lock-pw');
+    shakeEl('sec-lock-msg');
     $('sec-lock-pw').value = '';
     return;
   }
@@ -12660,7 +13025,7 @@ async function secUnlock() {
 let pendingSyncQueue = [];
 
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║  KPOS.V8.3 — SECURITY EXPANSION                                 ║
+// ║  KPOS.V9.0.C — SECURITY EXPANSION                                 ║
 // ║  B: AES-GCM field encryption for sensitive data                 ║
 // ║  C: 4-digit PIN quick lock                                      ║
 // ║  D: Full admin audit log with UI                                ║
@@ -12743,10 +13108,28 @@ async function pinSet(digits) {
   return true;
 }
 
-/** Verifies a PIN for the current user */
+/** Verifies a PIN for the current user.
+ * Handles both formats:
+ *   - New (correct): "saltHex:hashHex"  — written by pqSavePIN / pinSet via secHash()
+ *   - Legacy broken: separate user.pin + user.pinSalt fields — now auto-migrated to new format
+ */
 async function pinVerify(digits) {
   const user = S.users.find(u => u.id === CU?.id);
-  if (!user?.pin) return false;
+  if (!user) return false;
+
+  // Auto-migrate legacy separate-salt format on first verify attempt
+  if (user.pin && user.pinSalt && !user.pin.includes(':')) {
+    // Old format: pin = hashOnly, pinSalt = saltOnly — cannot be re-verified securely.
+    // Wipe and force user to re-set PIN.
+    const idx = S.users.findIndex(u => u.id === CU?.id);
+    if (idx >= 0) { delete S.users[idx].pin; delete S.users[idx].pinSalt; dataStore._persist(); }
+    if (CU) CU._hasPIN = false;
+    const msgEl = $('sec-pin-msg');
+    if (msgEl) msgEl.textContent = '⚠️ PIN format updated — please re-set your PIN via the 🔢 icon.';
+    return false;
+  }
+
+  if (!user.pin) return false;
   const { valid } = await secVerify(digits.join(''), user.pin);
   return valid;
 }
@@ -12796,6 +13179,17 @@ function secPINBack() {
   secRenderPIN();
 }
 
+
+/** Triggers shake animation on an element by ID, clears after */
+function shakeEl(id) {
+  var el = $(id);
+  if (!el) return;
+  el.classList.remove('kpos-shake');
+  void el.offsetWidth; // force reflow so re-adding works
+  el.classList.add('kpos-shake');
+  el.addEventListener('animationend', function() { el.classList.remove('kpos-shake'); }, { once: true });
+}
+
 async function secPINSubmit() {
   const valid = await pinVerify(PIN._digits);
   const msgEl = $('sec-pin-msg');
@@ -12805,8 +13199,10 @@ async function secPINSubmit() {
     secResetIdle();
   } else {
     if (msgEl) msgEl.textContent = '❌ Wrong PIN. Try again.';
+    shakeEl('sec-pin-dots');
+    shakeEl('sec-pin-msg');
     PIN._digits = [];
-    secRenderPIN();
+    setTimeout(secRenderPIN, 80);
   }
 }
 
@@ -12830,22 +13226,721 @@ function secSwitchToPassword() {
 function auditLog(action, detail, ref) {
   if (!CU) return;
   S.auditLog = S.auditLog || [];
+  // Resolve active shift — null if no shift open (V9)
+  const _activeShift = (S.shifts || []).find(sh => sh.status === 'open');
+  // Check if this event is outside store hours
+  const _now = new Date();
+  const _hhmm = _now.getHours() * 60 + _now.getMinutes();
+  const _openStr  = S.settings?.storeOpenTime  || '07:00';
+  const _closeStr = S.settings?.storeCloseTime || '21:00';
+  const [_oh, _om] = _openStr.split(':').map(Number);
+  const [_ch, _cm] = _closeStr.split(':').map(Number);
+  const _openMin  = _oh * 60 + _om;
+  const _closeMin = _ch * 60 + _cm;
+  const _afterHours = _hhmm < _openMin || _hhmm > _closeMin;
+
   S.auditLog.push({
-    id:      'al_' + Date.now().toString(36),
-    ts:      new Date().toISOString(),
-    uid:     CU.id,
-    uname:   CU.nm,
-    role:    CU.role,
+    id:         'al_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    ts:         new Date().toISOString(),
+    uid:        CU.id,
+    uname:      CU.nm,
+    role:       CU.role,
+    cashierId:  CU.id,                                    // V9: explicit cashier ID
+    deviceId:   S._syncMeta?.deviceId || 'unknown',       // V9: device traceability
+    shiftId:    _activeShift?.id || null,                 // V9: shift linkage
+    afterHours: _afterHours,                              // V9.0.D: outside store hours flag
     action,
     detail,
-    ref:     ref || '',
+    ref:        ref || '',
   });
-  // Keep last 1000 entries max — prevents unbounded growth
-  if (S.auditLog.length > 1000) S.auditLog.splice(0, S.auditLog.length - 1000);
+  // Keep last 5000 entries — increased from 1000 for enterprise audit trail (V9)
+  if (S.auditLog.length > 5000) S.auditLog.splice(0, S.auditLog.length - 5000);
   dataStore._persist();
 }
 
-/** Renders the Security settings panel */
+// ══════════════════════════════════════════════════════════════════
+// V9.0.C — PIN QUICK MODAL (topbar 🔢 button)
+// ══════════════════════════════════════════════════════════════════
+function openPinQuickModal() {
+  const modal=$('pin-quick-modal'),body=$('pin-quick-body');
+  if(!modal||!body)return;
+  const user=S.users.find(u=>u.id===CU?.id);
+  const hasPIN=!!(user?.pin);
+  body.innerHTML=`
+    <div class="al alb" style="font-size:12px;margin-bottom:12px">
+      Set a 4-digit PIN for fast unlock when the screen auto-locks.
+    </div>
+    <div style="font-size:12px;color:var(--tx2);margin-bottom:10px">
+      Status: ${hasPIN?'<span style="color:var(--gn);font-weight:700">✅ PIN is set</span>':'<span style="color:var(--am)">No PIN — using password only</span>'}
+    </div>
+    <div class="fi"><label class="fl">New PIN (4 digits)</label>
+      <input type="password" id="pq-new" maxlength="4" placeholder="••••" inputmode="numeric" style="letter-spacing:.3em;font-size:20px;text-align:center"/></div>
+    <div class="fi"><label class="fl">Confirm PIN</label>
+      <input type="password" id="pq-confirm" maxlength="4" placeholder="••••" inputmode="numeric" style="letter-spacing:.3em;font-size:20px;text-align:center"/></div>
+    <div id="pq-msg" style="margin-bottom:8px"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn bp bf" onclick="pqSavePIN()">💾 Set PIN</button>
+      ${hasPIN?`<button class="btn bs" style="color:var(--rd);border-color:var(--rd)" onclick="pqRemovePIN()">🗑 Remove PIN</button>`:''}
+      <button class="btn bs" onclick="closePinQuickModal()">Cancel</button>
+    </div>`;
+  modal.style.display='flex';
+}
+function closePinQuickModal(){const m=$('pin-quick-modal');if(m)m.style.display='none';}
+async function pqSavePIN(){
+  const np=$('pq-new')?.value.trim(),cp=$('pq-confirm')?.value.trim();
+  if(!np||np.length!==4||!/^\d{4}$/.test(np)){showMsg('pq-msg','⚠️ PIN must be exactly 4 digits.','ala');return;}
+  if(np!==cp){showMsg('pq-msg','⚠️ PINs do not match.','ala');return;}
+  const idx=S.users.findIndex(u=>u.id===CU?.id);if(idx<0)return;
+  // Use secHash so the stored format (salt:hash) matches pinVerify → secVerify
+  const hashed = await secHash(np);
+  S.users[idx].pin = hashed;
+  delete S.users[idx].pinSalt; // remove legacy separate-salt field if present
+  S.users[idx]._updatedAt = new Date().toISOString();
+  dataStore.updateUser(S.users[idx].id, {pin: hashed});
+  // Keep live session in sync so lock screen shows PIN pad immediately
+  if(CU) CU._hasPIN = true;
+  dataStore._persist();
+  auditLog('pin_set','PIN set via topbar');
+  notify('🔐 PIN set — lock screen will now use your PIN','success');
+  // Cashier: hide the PIN button now that PIN is set — only admin can change it
+  if(CU?.role!=='admin'){
+    const _pb=$('pin-topbar-btn');if(_pb)_pb.style.display='none';
+  }
+  closePinQuickModal();
+}
+function pqRemovePIN(){
+  if(!confirm('Remove PIN? Lock screen will use password instead.'))return;
+  const idx=S.users.findIndex(u=>u.id===CU?.id);
+  if(idx>=0){delete S.users[idx].pin;delete S.users[idx].pinSalt;dataStore._persist();}
+  auditLog('pin_removed','PIN removed via topbar');notify('🔓 PIN removed','info');closePinQuickModal();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// V9 — SHIFT MANAGEMENT SYSTEM
+// Schema: { id, openedBy, openedById, openedAt, openingCash,
+//           closedBy, closedById, closedAt, countedCash,
+//           expectedCash, variance, status:'open'|'closed', deviceId }
+// ══════════════════════════════════════════════════════════════════
+
+/** Returns the currently open shift or null */
+function getActiveShift() {
+  return (S.shifts || []).find(sh => sh.status === 'open') || null;
+}
+
+/** Formats duration between two ISO timestamps */
+function shiftDuration(startIso, endIso) {
+  const ms = new Date(endIso || new Date()) - new Date(startIso);
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+/** Update topbar shift indicator and dashboard banner */
+function updateShiftUI() {
+  const ind = $('shift-indicator');
+  const banner = $('shift-banner');
+  if (!ind) return;
+  const sh = getActiveShift();
+  // V9.0.B: find MY shift (linked to current user)
+  const myShift = CU ? (S.shifts||[]).find(s => s.status==='open' && s.openedById===CU.id) : null;
+  const isAdmin = isAd();
+  ind.style.display = 'flex';
+  if (sh || myShift) {
+    const activeShift = myShift || sh;
+    const dur = shiftDuration(activeShift.openedAt);
+    ind.textContent = `⏱ ${activeShift.openedBy.split(' ')[0]} · ${dur}`;
+    ind.style.background = 'rgba(34,197,94,.25)';
+    ind.style.borderColor = 'rgba(134,239,172,.5)';
+    if (banner) {
+      banner.innerHTML = `
+        <div class="card" style="border-left:4px solid var(--gn);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-weight:700;font-size:13px;color:var(--gn)">⏱ Shift Open — ${activeShift.openedBy}</div>
+            <div style="font-size:11px;color:var(--tx2)">Started: ${new Date(activeShift.openedAt).toLocaleString('en-PH')} · Duration: ${shiftDuration(activeShift.openedAt)} · Opening cash: ₱${(activeShift.openingCash||0).toLocaleString()}</div>
+          </div>
+          ${isAdmin ? `<button class="btn bs" onclick="openShiftModal()" style="font-size:12px">Close Shift</button>` : ''}
+        </div>`;
+      banner.style.display = 'block';
+    }
+  } else {
+    ind.textContent = '⏱ No Shift';
+    ind.style.background = 'rgba(255,255,255,.1)';
+    ind.style.borderColor = 'rgba(255,255,255,.2)';
+    if (banner) {
+      if (isAdmin) {
+        banner.innerHTML = `
+          <div class="card" style="border-left:4px solid var(--am);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <div>
+              <div style="font-weight:700;font-size:13px;color:var(--am)">⚠️ No Active Shift</div>
+              <div style="font-size:11px;color:var(--tx2)">Open a shift before starting sales to enable cashier accountability tracking.</div>
+            </div>
+            <button class="btn ba_" onclick="openShiftModal()" style="font-size:12px">Open Shift</button>
+          </div>`;
+        banner.style.display = 'block';
+      } else {
+        banner.style.display = 'none';
+      }
+    }
+  }
+}
+
+/** Topbar indicator click handler */
+function shiftQuickAction() {
+  openShiftModal();
+}
+
+/** Open the shift modal */
+function openShiftModal() {
+  const sh = getActiveShift();
+  const modal = $('shift-modal');
+  const body = $('shift-modal-body');
+  if (!modal || !body) return;
+
+  if (!sh) {
+    // Show open shift form
+    body.innerHTML = `
+      <div class="al alb" style="margin-bottom:12px;font-size:12px">
+        Opening a shift records your starting cash and links all transactions to this shift for accountability.
+      </div>
+      <div class="fi">
+        <label class="fl">Opening Cash in Drawer (₱)</label>
+        <input type="number" id="sh-opening-cash" min="0" step="0.01" value="0" placeholder="0.00"
+          style="font-size:16px;text-align:right"/>
+      </div>
+      <div id="sh-open-msg" style="margin-bottom:8px"></div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn bp bf" onclick="doOpenShift()">▶ Open Shift</button>
+        <button class="btn bs" onclick="closeShiftModal()">Cancel</button>
+      </div>`;
+  } else {
+    // Show close shift form
+    const txnsSinceOpen = (S.transactions || []).filter(t =>
+      t.shiftId === sh.id && t.status !== 'voided' && t.status !== 'returned');
+    const shiftSales = txnsSinceOpen.reduce((s, t) => s + (t.total || 0), 0);
+    const shiftCash  = txnsSinceOpen.filter(t => t.payType !== 'gcash').reduce((s, t) => s + (t.total || 0), 0);
+    const expectedCash = (sh.openingCash || 0) + shiftCash;
+
+    body.innerHTML = `
+      <div class="al alg" style="margin-bottom:12px;font-size:12px">
+        Shift by <strong>${sh.openedBy}</strong> — open since ${new Date(sh.openedAt).toLocaleString('en-PH')} (${shiftDuration(sh.openedAt)})
+      </div>
+      <div style="background:var(--sf2);border-radius:var(--rs);padding:12px;margin-bottom:12px;font-size:13px">
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--tx2)">Opening Cash</span><span style="font-weight:700">₱${(sh.openingCash||0).toLocaleString('en-PH',{minimumFractionDigits:2})}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--tx2)">Cash Sales</span><span style="font-weight:700;color:var(--gn)">+₱${shiftCash.toLocaleString('en-PH',{minimumFractionDigits:2})}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid var(--bd);margin-top:4px;padding-top:6px"><span style="font-weight:700">Expected Cash</span><span style="font-weight:700">₱${expectedCash.toLocaleString('en-PH',{minimumFractionDigits:2})}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--tx2)">Total Sales (all types)</span><span>₱${shiftSales.toLocaleString('en-PH',{minimumFractionDigits:2})}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--tx2)">Transactions</span><span>${txnsSinceOpen.length}</span></div>
+      </div>
+      <div class="fi">
+        <label class="fl">Counted Cash in Drawer (₱) <span style="color:var(--rd)">*</span></label>
+        <input type="number" id="sh-counted-cash" min="0" step="0.01" placeholder="0.00"
+          style="font-size:16px;text-align:right" oninput="shiftVariancePreview(${expectedCash})"/>
+      </div>
+      <div id="sh-variance-preview" style="font-size:13px;font-weight:700;margin-bottom:10px;min-height:20px"></div>
+      <div class="fi">
+        <label class="fl">Closing Notes (optional)</label>
+        <textarea id="sh-close-notes" rows="2" placeholder="Any notes about this shift..."></textarea>
+      </div>
+      <div id="sh-close-msg" style="margin-bottom:8px"></div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn bd bf" onclick="doCloseShift(${expectedCash})">⏹ Close Shift</button>
+        <button class="btn bs" onclick="closeShiftModal()">Cancel</button>
+      </div>`;
+  }
+  modal.style.display = 'flex';
+}
+
+/** Live variance preview while typing counted cash */
+function shiftVariancePreview(expected) {
+  const counted = parseFloat($('sh-counted-cash')?.value) || 0;
+  const variance = counted - expected;
+  const el = $('sh-variance-preview');
+  if (!el) return;
+  if (!$('sh-counted-cash')?.value) { el.textContent = ''; return; }
+  const color = variance === 0 ? 'var(--gn)' : variance > 0 ? 'var(--bl)' : 'var(--rd)';
+  const sign = variance >= 0 ? '+' : '';
+  el.style.color = color;
+  el.textContent = `Variance: ${sign}₱${variance.toLocaleString('en-PH',{minimumFractionDigits:2})} ${variance === 0 ? '✅ Exact' : variance > 0 ? '⬆ Over' : '⬇ Short'}`;
+}
+
+function closeShiftModal() {
+  const m = $('shift-modal');
+  if (m) m.style.display = 'none';
+}
+
+/** Open a new shift */
+function doOpenShift() {
+  const openingCash = parseFloat($('sh-opening-cash')?.value) || 0;
+  const sh = {
+    id:          'sh_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    openedBy:    CU.nm,
+    openedById:  CU.id,
+    openedAt:    new Date().toISOString(),
+    openingCash,
+    status:      'open',
+    deviceId:    S._syncMeta?.deviceId || 'unknown',
+    closedBy:    null, closedById: null, closedAt: null,
+    countedCash: null, expectedCash: null, variance: null,
+    notes:       '',
+  };
+  S.shifts = S.shifts || [];
+  S.shifts.push(sh);
+  dataStore._persist();
+  auditLog('shift_open', `Shift opened with ₱${openingCash.toFixed(2)} opening cash`, sh.id);
+  closeShiftModal();
+  updateShiftUI();
+  showToast('✅ Shift opened');
+  // V9.0.C: complete pending cashier login if shift was opened as part of login flow
+  if (_pendingCashierLogin) {
+    _pendingCashierLogin = false;
+    notify(`✅ Shift opened · Welcome, ${CU?.nm || 'Cashier'}!`, 'success');
+    // Complete the full login UI sequence that was deferred
+    try {
+      $('LS').style.display='none';
+      $('AP').style.cssText='display:flex;flex-direction:column';
+      if($('tbn'))$('tbn').textContent=S.settings?.storeName||"Kyrie's Sari-Sari Store";
+      if($('tbun'))$('tbun').textContent=CU?.nm||'';
+      if($('tbrl'))$('tbrl').textContent='Cashier';
+      if($('tbav'))$('tbav').textContent=(CU?.nm||'?')[0].toUpperCase();
+      if($('lsn'))$('lsn').textContent=S.settings?.storeName||"Kyrie's Sari-Sari Store";
+      buildTabs();
+      applyTheme();
+      switchTab('pos');
+      updBadge();
+      updateStoreBanner();
+      // PIN button: admin always sees it; cashier only sees it before PIN is set
+      const _pb=$('pin-topbar-btn');if(_pb)_pb.style.display=(CU.role==='admin'||!CU._hasPIN)?'inline-flex':'none';
+      secStartSession();
+      updateShiftUI();
+    } catch(err) {
+      console.error('[POS] Cashier login render error after shift open:', err);
+    }
+  }
+}
+
+/** Close the active shift */
+function doCloseShift(expectedCash) {
+  const sh = getActiveShift();
+  if (!sh) return;
+  const countedRaw = $('sh-counted-cash')?.value;
+  if (!countedRaw && countedRaw !== '0') {
+    showMsg('sh-close-msg', '⚠️ Enter the counted cash amount.', 'ala'); return;
+  }
+  const countedCash = parseFloat(countedRaw) || 0;
+  const variance = countedCash - expectedCash;
+  const notes = $('sh-close-notes')?.value || '';
+
+  const idx = S.shifts.findIndex(s => s.id === sh.id);
+  if (idx < 0) return;
+  S.shifts[idx] = {
+    ...S.shifts[idx],
+    closedBy:     CU.nm,
+    closedById:   CU.id,
+    closedAt:     new Date().toISOString(),
+    countedCash,
+    expectedCash,
+    variance,
+    notes,
+    status:       'closed',
+  };
+  dataStore._persist();
+  auditLog('shift_close',
+    `Shift closed. Expected: ₱${expectedCash.toFixed(2)} · Counted: ₱${countedCash.toFixed(2)} · Variance: ${variance >= 0 ? '+' : ''}₱${variance.toFixed(2)}`,
+    sh.id);
+  if (Math.abs(variance) > 50) {
+    auditLog('shift_variance_alert',
+      `⚠️ Large variance detected: ${variance >= 0 ? '+' : ''}₱${variance.toFixed(2)} on shift ${sh.id}`,
+      sh.id);
+  }
+  closeShiftModal();
+  updateShiftUI();
+  showToast(`⏹ Shift closed. Variance: ${variance >= 0 ? '+' : ''}₱${variance.toFixed(2)}`);
+  // V9.0.C: complete pending logout if shift was closed as part of logout flow
+  if (_pendingLogout) {
+    _pendingLogout = false;
+    notify(`⏹ Shift closed — signing out`, 'info', 3000);
+    setTimeout(() => doLogout(), 600);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// V9.0.B — GLOBAL NOTIFICATION SYSTEM
+// notify(msg, type, duration) — type: 'success'|'error'|'warn'|'info'|'save'
+// Shows in top-left bar, auto-dismisses, stacks up to 4
+// Also fires showToast() for backwards compat
+// ══════════════════════════════════════════════════════════════════
+const _notifColors = {
+  success: { bg:'rgba(34,197,94,.12)',  border:'rgba(34,197,94,.4)',  icon:'✅', tx:'var(--gn)' },
+  error:   { bg:'rgba(239,68,68,.12)',  border:'rgba(239,68,68,.4)',  icon:'❌', tx:'var(--rd)' },
+  warn:    { bg:'rgba(245,158,11,.12)', border:'rgba(245,158,11,.4)', icon:'⚠️', tx:'var(--am)' },
+  info:    { bg:'rgba(59,130,246,.12)', border:'rgba(59,130,246,.4)', icon:'ℹ️', tx:'var(--bl)' },
+  save:    { bg:'rgba(168,85,247,.12)', border:'rgba(168,85,247,.4)', icon:'💾', tx:'var(--pu,#a855f7)' },
+};
+function notify(msg, type='info', duration=4000) {
+  const bar = document.getElementById('gnotif-bar');
+  if (!bar) { console.log('[notify]', type, msg); return; }
+  const c = _notifColors[type] || _notifColors.info;
+  const id = 'gn_' + Date.now();
+  const el = document.createElement('div');
+  el.id = id;
+  el.style.cssText = `pointer-events:auto;background:${c.bg};border:1px solid ${c.border};border-radius:8px;padding:8px 12px;display:flex;align-items:flex-start;gap:8px;font-size:12px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.3);transform:translateX(120%);transition:transform .25s ease;max-width:360px;line-height:1.4;color:${c.tx}`;
+  el.innerHTML = `<span style="flex-shrink:0;font-size:14px">${c.icon}</span><span style="flex:1;color:var(--tx)">${msg}</span><span onclick="document.getElementById('${id}')?.remove()" style="flex-shrink:0;cursor:pointer;opacity:.5;font-size:16px;line-height:1;color:var(--tx)">×</span>`;
+  bar.appendChild(el);
+  // Limit to 4 stacked
+  while (bar.children.length > 4) bar.removeChild(bar.firstChild);
+  requestAnimationFrame(() => { el.style.transform = 'translateX(0)'; });
+  const _dur = duration > 0 ? duration : 5000; // V9.0.C: default 5s
+  if (_dur > 0) setTimeout(() => {
+    el.style.transform = 'translateX(120%)';
+    setTimeout(() => el.remove(), 260);
+  }, _dur);
+}
+// Backwards compat
+function showToast(msg, duration=3000) { notify(msg, 'info', duration); }
+
+/** V9 — Cashier Investigation Dashboard */
+function renderInvestigationDash() {
+  const el = $('v9-investigation-dash');
+  if (!el) return;
+
+  // Populate cashier dropdown
+  const cashierEl = $('inv-cashier-filter');
+  const allCashiers = [...new Set([
+    ...(S.transactions||[]).map(t => t.cashier),
+    ...(S.gcashLog||[]).map(g => g.by),
+    ...(S.expenses||[]).map(e => e.by),
+  ].filter(Boolean))].sort();
+  if (cashierEl) {
+    const cur = cashierEl.value;
+    cashierEl.innerHTML = '<option value="">All Cashiers</option>' +
+      allCashiers.map(c => `<option value="${esc(c)}"${c===cur?' selected':''}>${esc(c)}</option>`).join('');
+  }
+
+  const fCashier = cashierEl?.value || '';
+  const fPeriod  = $('inv-period-filter')?.value || 'all';
+  const now = new Date(); const td = today();
+
+  const inPeriod = dateStr => {
+    if (!dateStr) return true;
+    try {
+      const d = parseLocalDate ? parseLocalDate(dateStr) : new Date(dateStr);
+      if (fPeriod === 'today') return dateStr === td;
+      if (fPeriod === 'week') { const w=new Date(now); w.setDate(now.getDate()-now.getDay()); w.setHours(0,0,0,0); return d >= w; }
+      if (fPeriod === 'month') return dateStr.slice(0,7) === td.slice(0,7);
+      return true;
+    } catch(e) { return true; }
+  };
+
+  // Build per-cashier stats
+  const stats = {};
+  const ensure = nm => { if (!stats[nm]) stats[nm] = { sales:0, salesAmt:0, voids:0, voidsAmt:0, returns:0, returnsAmt:0, gcash:0, gcashFees:0, expenses:0, expAmt:0, shifts:0 }; };
+
+  (S.transactions||[]).forEach(t => {
+    const c = t.cashier || 'Unknown';
+    if (fCashier && c !== fCashier) return;
+    if (!inPeriod(t.date)) return;
+    ensure(c);
+    if (t.status === 'voided')    { stats[c].voids++;   stats[c].voidsAmt   += t.total||0; }
+    else if (t.status==='returned'){ stats[c].returns++; stats[c].returnsAmt += t.total||0; }
+    else                           { stats[c].sales++;   stats[c].salesAmt   += t.total||0; }
+  });
+
+  (S.gcashLog||[]).forEach(g => {
+    const c = g.by || 'Unknown';
+    if (fCashier && c !== fCashier) return;
+    ensure(c);
+    stats[c].gcash++;
+    stats[c].gcashFees += parseFloat(g.fee)||0;
+  });
+
+  (S.expenses||[]).forEach(e => {
+    const c = e.by || 'Unknown';
+    if (fCashier && c !== fCashier) return;
+    ensure(c);
+    stats[c].expenses++;
+    stats[c].expAmt += parseFloat(e.amount)||0;
+  });
+
+  (S.shifts||[]).forEach(sh => {
+    const c = sh.openedBy || 'Unknown';
+    if (fCashier && c !== fCashier) return;
+    ensure(c);
+    stats[c].shifts++;
+  });
+
+  const entries = Object.entries(stats);
+  if (!entries.length) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--tx2);padding:8px 0">No data for selected filters.</div>';
+    return;
+  }
+
+  el.innerHTML = entries.map(([cashier, s]) => {
+    const total = s.sales + s.voids + s.returns;
+    const voidPct  = total ? ((s.voids/total)*100).toFixed(1) : '0.0';
+    const retPct   = total ? ((s.returns/total)*100).toFixed(1) : '0.0';
+    const voidRisk = parseFloat(voidPct) >= 20 ? 'var(--rd)' : parseFloat(voidPct) >= 10 ? 'var(--am)' : 'var(--gn)';
+    const retRisk  = parseFloat(retPct)  >= 15 ? 'var(--rd)' : parseFloat(retPct)  >= 8  ? 'var(--am)' : 'var(--gn)';
+    return `
+    <div style="border:1px solid var(--bd);border-radius:var(--rs);padding:14px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px">
+        <div style="font-weight:700;font-size:14px">👤 ${esc(cashier)}</div>
+        <div style="font-size:11px;color:var(--tx2)">${s.shifts} shift${s.shifts!==1?'s':''} recorded</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;font-size:12px">
+        <div style="background:var(--gnb);border-radius:6px;padding:8px">
+          <div style="color:var(--tx2);font-size:10px;text-transform:uppercase;font-weight:700">Sales</div>
+          <div style="font-size:18px;font-weight:700;color:var(--gn)">${s.sales}</div>
+          <div style="color:var(--tx2)">${peso(s.salesAmt)}</div>
+        </div>
+        <div style="background:${parseFloat(voidPct)>=20?'rgba(239,68,68,.08)':'var(--sf2)'};border-radius:6px;padding:8px;border:1px solid ${voidRisk}22">
+          <div style="color:var(--tx2);font-size:10px;text-transform:uppercase;font-weight:700">Voids</div>
+          <div style="font-size:18px;font-weight:700;color:${voidRisk}">${s.voids}</div>
+          <div style="color:${voidRisk};font-weight:600">${voidPct}% of txns</div>
+        </div>
+        <div style="background:${parseFloat(retPct)>=15?'rgba(239,68,68,.08)':'var(--sf2)'};border-radius:6px;padding:8px;border:1px solid ${retRisk}22">
+          <div style="color:var(--tx2);font-size:10px;text-transform:uppercase;font-weight:700">Returns</div>
+          <div style="font-size:18px;font-weight:700;color:${retRisk}">${s.returns}</div>
+          <div style="color:${retRisk};font-weight:600">${retPct}% of txns</div>
+        </div>
+        <div style="background:rgba(59,130,246,.08);border-radius:6px;padding:8px">
+          <div style="color:var(--tx2);font-size:10px;text-transform:uppercase;font-weight:700">GCash Txns</div>
+          <div style="font-size:18px;font-weight:700;color:var(--bl)">${s.gcash}</div>
+          <div style="color:var(--tx2)">${peso(s.gcashFees)} fees</div>
+        </div>
+        <div style="background:rgba(245,158,11,.08);border-radius:6px;padding:8px">
+          <div style="color:var(--tx2);font-size:10px;text-transform:uppercase;font-weight:700">Expenses</div>
+          <div style="font-size:18px;font-weight:700;color:var(--am)">${s.expenses}</div>
+          <div style="color:var(--tx2)">${peso(s.expAmt)}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/** V9 — Renders the Security settings panel */
+// ══════════════════════════════════════════════════════════════════
+// V9 — SUSPICIOUS ACTIVITY DETECTION ENGINE
+// Read-only. Never mutates data. Pure analysis over existing records.
+// ══════════════════════════════════════════════════════════════════
+
+const SUSPICION_RULES = {
+  voidRatePct:      20,   // flag cashier if >20% of their txns are voided
+  refundRatePct:    15,   // flag if >15% returned
+  rapidFireMinutes: 5,    // flag if 3+ voids/refunds within 5 minutes
+  rapidFireCount:   3,
+  afterHoursStart:  22,   // 10 PM
+  afterHoursEnd:    6,    // 6 AM
+  largeDiscountPct: 30,   // flag discounts >30%
+  largeVoidAmount:  500,  // flag single void >₱500
+  minTxnsForRate:   5,    // minimum txns before rate flags apply
+};
+
+/** Run full suspicious activity analysis. Returns array of flag objects. */
+function runSuspicionEngine() {
+  const flags = [];
+  const txns  = S.transactions || [];
+  const now   = Date.now();
+
+  // ── Group transactions by cashier ─────────────────────────────
+  const byCashier = {};
+  txns.forEach(t => {
+    const cid = t.cashierId || t.cashier || 'unknown';
+    if (!byCashier[cid]) byCashier[cid] = { name: t.cashier || cid, txns: [] };
+    byCashier[cid].txns.push(t);
+  });
+
+  Object.entries(byCashier).forEach(([cid, data]) => {
+    const all     = data.txns;
+    const total   = all.length;
+    const voided  = all.filter(t => t.status === 'voided');
+    const returned= all.filter(t => t.status === 'returned');
+    const completed = all.filter(t => t.status === 'completed');
+
+    // ── Rule 1: High void rate ──────────────────────────────────
+    if (total >= SUSPICION_RULES.minTxnsForRate) {
+      const voidPct = (voided.length / total) * 100;
+      if (voidPct >= SUSPICION_RULES.voidRatePct) {
+        flags.push({
+          type: 'high_void_rate', severity: 'high',
+          cashier: data.name, cashierId: cid,
+          detail: `${voided.length} of ${total} transactions voided (${voidPct.toFixed(1)}%)`,
+          count: voided.length,
+        });
+      }
+
+      // ── Rule 2: High refund/return rate ──────────────────────
+      const refPct = (returned.length / total) * 100;
+      if (refPct >= SUSPICION_RULES.refundRatePct) {
+        flags.push({
+          type: 'high_refund_rate', severity: 'medium',
+          cashier: data.name, cashierId: cid,
+          detail: `${returned.length} of ${total} transactions returned (${refPct.toFixed(1)}%)`,
+          count: returned.length,
+        });
+      }
+    }
+
+    // ── Rule 3: Large single void ─────────────────────────────
+    voided.forEach(t => {
+      if ((t.total || 0) >= SUSPICION_RULES.largeVoidAmount) {
+        flags.push({
+          type: 'large_void', severity: 'high',
+          cashier: data.name, cashierId: cid,
+          detail: `Large void: ₱${(t.total||0).toLocaleString('en-PH',{minimumFractionDigits:2})} — Receipt ${t.rc}`,
+          rc: t.rc, amount: t.total,
+        });
+      }
+    });
+
+    // ── Rule 4: Rapid-fire voids/returns ─────────────────────
+    const voidEvents = [...voided, ...returned]
+      .filter(t => t._updatedAt || t.date)
+      .sort((a, b) => new Date(a._updatedAt||a.date) - new Date(b._updatedAt||b.date));
+    for (let i = 0; i <= voidEvents.length - SUSPICION_RULES.rapidFireCount; i++) {
+      const window = voidEvents.slice(i, i + SUSPICION_RULES.rapidFireCount);
+      const first  = new Date(window[0]._updatedAt || window[0].date);
+      const last   = new Date(window[window.length-1]._updatedAt || window[window.length-1].date);
+      const diffMin= (last - first) / 60000;
+      if (diffMin <= SUSPICION_RULES.rapidFireMinutes) {
+        flags.push({
+          type: 'rapid_fire_voids', severity: 'high',
+          cashier: data.name, cashierId: cid,
+          detail: `${SUSPICION_RULES.rapidFireCount} voids/returns within ${diffMin.toFixed(1)} minutes`,
+        });
+        break; // only flag once per cashier
+      }
+    }
+
+    // ── Rule 5: After-hours transactions ─────────────────────
+    const afterHours = completed.filter(t => {
+      if (!t.time) return false;
+      const h = parseInt((t.time||'').split(':')[0]);
+      return h >= SUSPICION_RULES.afterHoursStart || h < SUSPICION_RULES.afterHoursEnd;
+    });
+    if (afterHours.length > 0) {
+      flags.push({
+        type: 'after_hours', severity: 'medium',
+        cashier: data.name, cashierId: cid,
+        detail: `${afterHours.length} transaction${afterHours.length>1?'s':''} outside business hours (10PM–6AM)`,
+        count: afterHours.length,
+      });
+    }
+  });
+
+  // ── Rule 6: Negative/zero stock products (inventory manipulation) ─
+  (S.products || []).forEach(p => {
+    if ((p.stock || 0) < 0) {
+      flags.push({
+        type: 'negative_stock', severity: 'medium',
+        cashier: 'System', cashierId: null,
+        detail: `Negative stock: ${p.nm} — ${p.stock} units (barcode: ${p.bc})`,
+        bc: p.bc,
+      });
+    }
+  });
+
+  // ── Rule 7: GCash entries missing reference number ────────────
+  const gcashNoRef = (S.gcashLog || []).filter(g =>
+    (g.amt || g.amount || 0) > 100 && !g.refNo && g.type !== 'restock'
+  );
+  if (gcashNoRef.length > 0) {
+    flags.push({
+      type: 'gcash_no_reference', severity: 'medium',
+      cashier: 'Multiple', cashierId: null,
+      detail: `${gcashNoRef.length} GCash transaction${gcashNoRef.length>1?'s':''} missing reference number`,
+      count: gcashNoRef.length,
+    });
+  }
+
+  // ── Rule 8: Duplicate receipts ───────────────────────────────
+  const rcCounts = {};
+  txns.forEach(t => { rcCounts[t.rc] = (rcCounts[t.rc]||0) + 1; });
+  const dupes = Object.entries(rcCounts).filter(([rc,ct]) => ct > 1);
+  if (dupes.length > 0) {
+    flags.push({
+      type: 'duplicate_receipts', severity: 'critical',
+      cashier: 'System', cashierId: null,
+      detail: `${dupes.length} duplicate receipt code${dupes.length>1?'s':''} detected — data integrity issue`,
+      count: dupes.length,
+    });
+  }
+
+  // Sort: critical → high → medium → low
+  const order = { critical: 0, high: 1, medium: 2, low: 3 };
+  return flags.sort((a, b) => (order[a.severity]||3) - (order[b.severity]||3));
+}
+
+/** Renders the V9 Security Investigation Panel */
+function renderV9SecurityDashboard() {
+  const el = $('v9-security-dash');
+  if (!el) return;
+
+  const flags = runSuspicionEngine();
+  const severityColor = { critical: 'var(--rd)', high: '#f97316', medium: 'var(--am)', low: 'var(--bl)' };
+  const severityBg    = { critical: 'rgba(239,68,68,.1)', high: 'rgba(249,115,22,.1)', medium: 'rgba(245,158,11,.1)', low: 'rgba(59,130,246,.1)' };
+
+  if (flags.length === 0) {
+    el.innerHTML = `<div class="al alg" style="font-size:13px">✅ No suspicious activity detected across all transactions, inventory, and GCash records.</div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div style="margin-bottom:10px;font-size:12px;color:var(--tx2)">${flags.length} flag${flags.length>1?'s':''} detected — review each item carefully</div>
+    ${flags.map(f => `
+      <div style="background:${severityBg[f.severity]||'var(--sf2)'};border:1px solid ${severityColor[f.severity]||'var(--bd)'};border-radius:var(--rs);padding:10px 14px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start">
+        <div style="flex-shrink:0;font-size:18px">${f.severity==='critical'?'🚨':f.severity==='high'?'🔴':f.severity==='medium'?'⚠️':'🔵'}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:12px;color:${severityColor[f.severity]};text-transform:uppercase;letter-spacing:.05em">${f.severity} — ${f.type.replace(/_/g,' ')}</div>
+          <div style="font-size:13px;margin-top:2px">${f.detail}</div>
+          ${f.cashier && f.cashier !== 'System' && f.cashier !== 'Multiple' ? `<div style="font-size:11px;color:var(--tx2);margin-top:2px">Cashier: ${f.cashier}</div>` : ''}
+        </div>
+      </div>
+    `).join('')}`;
+}
+
+/** Renders shift history table */
+function renderShiftHistory() {
+  const el = $('v9-shift-history');
+  if (!el) return;
+  const shifts = (S.shifts || []).slice().reverse();
+  if (!shifts.length) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--tx2);padding:8px 0">No shift records yet.</div>';
+    return;
+  }
+  el.innerHTML = `
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="border-bottom:2px solid var(--bd)">
+        <th style="text-align:left;padding:6px 8px;color:var(--tx2)">Opened By</th>
+        <th style="text-align:left;padding:6px 8px;color:var(--tx2)">Opened At</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--tx2)">Opening ₱</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--tx2)">Expected ₱</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--tx2)">Counted ₱</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--tx2)">Variance</th>
+        <th style="text-align:center;padding:6px 8px;color:var(--tx2)">Status</th>
+        <th style="text-align:right;padding:6px 8px;color:var(--tx2)">Duration</th>
+      </tr></thead>
+      <tbody>
+      ${shifts.map(sh => {
+        const variance = sh.variance;
+        const varColor = variance == null ? 'var(--tx2)' : variance === 0 ? 'var(--gn)' : variance > 0 ? 'var(--bl)' : 'var(--rd)';
+        const sign = variance > 0 ? '+' : '';
+        return `<tr style="border-bottom:1px solid var(--bd)">
+          <td style="padding:6px 8px;font-weight:600">${sh.openedBy||'—'}</td>
+          <td style="padding:6px 8px;color:var(--tx2)">${sh.openedAt ? new Date(sh.openedAt).toLocaleString('en-PH') : '—'}</td>
+          <td style="padding:6px 8px;text-align:right">₱${(sh.openingCash||0).toLocaleString('en-PH',{minimumFractionDigits:2})}</td>
+          <td style="padding:6px 8px;text-align:right">${sh.expectedCash != null ? '₱'+sh.expectedCash.toLocaleString('en-PH',{minimumFractionDigits:2}) : '—'}</td>
+          <td style="padding:6px 8px;text-align:right">${sh.countedCash != null ? '₱'+sh.countedCash.toLocaleString('en-PH',{minimumFractionDigits:2}) : '—'}</td>
+          <td style="padding:6px 8px;text-align:right;font-weight:700;color:${varColor}">${variance != null ? sign+'₱'+Math.abs(variance).toLocaleString('en-PH',{minimumFractionDigits:2}) : '—'}</td>
+          <td style="padding:6px 8px;text-align:center"><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:${sh.status==='open'?'rgba(34,197,94,.15)':'var(--sf2)'};color:${sh.status==='open'?'var(--gn)':'var(--tx2)'}">${sh.status==='open'?'OPEN':'CLOSED'}</span></td>
+          <td style="padding:6px 8px;text-align:right;color:var(--tx2)">${sh.openedAt ? shiftDuration(sh.openedAt, sh.closedAt) : '—'}</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>
+    </div>`;
+}
+
 function renderSecurityPanel() {
   // Show current PIN status
   const user     = S.users.find(u => u.id === CU?.id);
@@ -12861,6 +13956,10 @@ function renderSecurityPanel() {
   if ($('sec-pin-msg')) $('sec-pin-msg').innerHTML = '';
   // Render audit log
   renderAuditLog();
+  // V9: render suspicious activity and shift history on panel open
+  renderV9SecurityDashboard();
+  renderShiftHistory();
+  renderInvestigationDash();
 }
 
 /** Saves a new PIN for the current user */
@@ -12877,7 +13976,7 @@ async function secSavePIN() {
   const success = await pinSet(newPin.split('').map(Number));
   if (success) {
     auditLog('pin_set', 'Quick PIN lock enabled', CU.id);
-    showMsg('sec-pin-msg', '✅ PIN set successfully! Lock screen will now use your PIN.', 'alg');
+    showMsg('sec-pin-msg', '✅ PIN set successfully! Lock screen will now use your PIN.', 'alg');notify('🔐 PIN set — lock screen enabled','success');
     renderSecurityPanel();
   } else {
     showMsg('sec-pin-msg', '❌ Failed to set PIN. Please try again.', 'alr');
@@ -12913,7 +14012,14 @@ function renderAuditLog() {
   const searchVal = ($('audit-search')?.value || '').toLowerCase();
   let log = (S.auditLog||[]).slice().reverse();
   if (filterVal !== 'all') {
-    log = log.filter(e => e.action === filterVal || e.action.startsWith(filterVal));
+    const filterMap = { backup: ['backup_export','restore_replace','restore_merge'], expense: ['add_expense'] };
+    if (filterVal === 'afterhours') { log = log.filter(e => e.afterHours); }
+    const targets = filterMap[filterVal] || null;
+    if (targets) {
+      log = log.filter(e => targets.includes(e.action));
+    } else {
+      log = log.filter(e => e.action === filterVal || e.action.startsWith(filterVal));
+    }
   }
   if (searchVal) {
     log = log.filter(e =>
@@ -12942,15 +14048,26 @@ function renderAuditLog() {
     const color = actionColors[e.action] || 'var(--tx2)';
     const dt    = new Date(e.ts);
     const time  = dt.toLocaleString('en-PH', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    // V9: build traceability subtitle
+    const traceParts = [];
+    if (e.deviceId && e.deviceId !== 'unknown') traceParts.push(`📱 ${e.deviceId.slice(-6)}`);
+    if (e.shiftId) traceParts.push(`⏱ shift`);
+    const traceStr = traceParts.length ? `<span style="color:var(--tx3);font-size:10px;margin-left:6px">${traceParts.join(' · ')}</span>` : '';
+    // After-hours badge
+    const ahBadge = e.afterHours
+      ? `<span style="background:var(--amb);color:var(--amt);border:1px solid var(--am);border-radius:3px;font-size:10px;padding:1px 5px;margin-left:6px;font-weight:700">⚠️ After Hours</span>` : '';
     return `<div style="display:flex;gap:8px;align-items:flex-start;padding:7px 0;
-                        border-bottom:1px solid var(--bd);font-size:12px">
+                        border-bottom:1px solid var(--bd);font-size:12px;
+                        ${e.afterHours ? 'background:rgba(251,191,36,.06)' : ''}">
       <div style="flex-shrink:0;color:var(--tx3);min-width:90px">${time}</div>
       <div style="flex:1;min-width:0">
         <span style="font-weight:700;color:${color}">${esc(e.action.replace(/_/g,' ').toUpperCase())}</span>
         <span style="color:var(--tx2);margin-left:6px">${esc(e.detail)}</span>
         ${e.ref?`<span style="color:var(--tx3);font-size:10px;margin-left:4px">#${esc(e.ref)}</span>`:''}
+        ${ahBadge}
+        ${traceStr}
       </div>
-      <div style="flex-shrink:0;color:var(--tx3);font-size:11px">${esc(e.uname)}</div>
+      <div style="flex-shrink:0;color:var(--tx3);font-size:11px">${esc(e.uname||'')}<br><span style="font-size:10px;color:var(--tx3)">${esc(e.role||'')}</span></div>
     </div>`;
   }).join('');
 }
@@ -13787,7 +14904,8 @@ const syncProvider = {
             const gcExists = (S.gcashLog||[]).some(g => `${g.time}|${g.nm}|${g.amount}` === key);
             if (!gcExists) {
               S.gcashLog = S.gcashLog || [];
-              S.gcashLog.push({ ...payload });
+              // V9: preserve traceability fields from synced payload
+              S.gcashLog.push({ cashierId: null, deviceId: 'sync', shiftId: null, ...payload });
               applied++;
             } else skipped++;
             break;
@@ -14548,6 +15666,9 @@ const dataStore = {
         S.creditTransactions = Array.isArray(S.creditTransactions) ? S.creditTransactions : [];
         S.creditPayments     = Array.isArray(S.creditPayments)     ? S.creditPayments     : [];
         S.auditLog           = Array.isArray(S.auditLog)           ? S.auditLog           : [];
+        // V9 collection guards
+        S.shifts             = Array.isArray(S.shifts)             ? S.shifts             : [];
+        S.importHistory      = Array.isArray(S.importHistory)      ? S.importHistory      : [];
         // Credit settings — back-fill defaults for older backups that predate § 20
         if (!S.settings) S.settings = { ..._DEFAULT_STATE.settings };
         S.settings.creditDefaultLimit  = S.settings.creditDefaultLimit  ?? 200;
@@ -14563,6 +15684,9 @@ const dataStore = {
         S.expenses      = Array.isArray(S.expenses)      ? S.expenses                         : [];
         S.invLog        = Array.isArray(S.invLog)        ? S.invLog.slice(-2000)              : []; // cap log to 2000
         S.loginLog      = Array.isArray(S.loginLog)      ? S.loginLog.slice(-500)             : []; // cap to 500
+        // V9 collection guards
+        S.shifts        = Array.isArray(S.shifts)        ? S.shifts                           : [];
+        S.importHistory = Array.isArray(S.importHistory) ? S.importHistory.slice(-200)        : []; // cap to 200
       }
     } catch(e) { console.warn('[POS] _load error:', e); }
   },
@@ -14671,6 +15795,16 @@ const dataStore = {
     const actionType = changes.status === 'voided' ? 'void'
       : changes.status === 'returned' ? 'return' : 'update';
     changeTracker.stamp(S.transactions[idx], actionType);
+    // V9: auto-audit all financial status changes on transactions
+    if (changes.status === 'voided') {
+      auditLog('void_transaction',
+        `Receipt ${rc} voided. Reason: ${changes.voidReason || 'none'}`,
+        rc);
+    } else if (changes.status === 'returned') {
+      auditLog('return_transaction',
+        `Receipt ${rc} returned. Note: ${changes.returnNote || 'none'}`,
+        rc);
+    }
     this._persist();
     syncQueue.push('transactions', 'update', rc, S.transactions[idx]);
   },
@@ -14697,6 +15831,11 @@ const dataStore = {
 
   // ── GCASH ───────────────────────────────────────────────────────
   createGCashEntry(entry) {
+    // V9: inject cashier traceability fields
+    entry.cashierId = entry.cashierId || (typeof CU !== 'undefined' && CU?.id) || null;
+    entry.deviceId  = entry.deviceId  || S._syncMeta?.deviceId || 'unknown';
+    const _activeShift = (S.shifts || []).find(sh => sh.status === 'open');
+    entry.shiftId   = entry.shiftId   || _activeShift?.id || null;
     changeTracker.stamp(entry, 'create', true);
     S.gcashLog.push(entry);
     this._persist();
@@ -14719,9 +15858,15 @@ const dataStore = {
 
   // ── EXPENSES ────────────────────────────────────────────────────
   createExpense(expense) {
+    // V9: inject cashier traceability
+    expense.cashierId = expense.cashierId || (typeof CU !== 'undefined' && CU?.id) || null;
+    expense.deviceId  = expense.deviceId  || S._syncMeta?.deviceId || 'unknown';
+    const _activeShift = (S.shifts || []).find(sh => sh.status === 'open');
+    expense.shiftId   = expense.shiftId   || _activeShift?.id || null;
     changeTracker.stamp(expense, 'create', true);
     S.expenses = S.expenses || [];
     S.expenses.push(expense);
+    auditLog('add_expense', `Expense: ${expense.type} — ${expense.desc} — ₱${expense.amount}`, expense.id);
     this._persist();
     syncQueue.push('expenses', 'create', expense.id, expense);
   },
@@ -14974,7 +16119,8 @@ const peso=n=>'₱'+parseFloat(n||0).toLocaleString('en-PH',{minimumFractionDigi
 const today=()=>{try{return new Date().toLocaleDateString('en-PH');}catch(e){return new Date().toLocaleDateString();}};
 const openM=id=>{const el=$(id);if(el)el.classList.add('show');};
 const closeM=id=>{const el=$(id);if(el)el.classList.remove('show');};
-const showMsg=(id,msg,cls)=>{const el=$(id);if(!el)return;el.innerHTML=`<div class="al ${cls}">${msg}</div>`;setTimeout(()=>{if(el)el.innerHTML='';},4000);};
+// V9.0.B: legacy showMsg kept for inline form errors (small local alerts)
+const showMsg=(id,msg,cls)=>{const el=$(id);if(!el){notify(msg,cls==='alr'?'error':cls==='alg'?'success':cls==='ala'?'warn':'info');return;}el.innerHTML=`<div class="al ${cls}">${msg}</div>`;setTimeout(()=>{if(el)el.innerHTML='';},4000);};
 const lowP=()=>softDelete.active(S.products).filter(p=>p.stock>0&&p.stock<=p.lowAt);
 const outP=()=>softDelete.active(S.products).filter(p=>p.stock<=0);
 const findP=q=>{q=(q||'').trim().toLowerCase();return softDelete.active(S.products).find(p=>p.bc.toLowerCase()===q||p.nm.toLowerCase().includes(q));};;
@@ -15048,7 +16194,9 @@ function updBadge(){
     const bell=$('ntfbell');if(bell)bell.style.display='none';
   }
 }
-function startClockTick(){try{const el=$('clk');if(el)el.textContent=new Date().toLocaleString('en-PH',{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){try{const el=$('clk');if(el)el.textContent=new Date().toLocaleString();}catch(e2){}}}
+function startClockTick(){try{const el=$('clk');if(el)el.textContent=new Date().toLocaleString('en-PH',{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});}catch(e){try{const el=$('clk');if(el)el.textContent=new Date().toLocaleString();}catch(e2){}}}
+// V9.0.B FIX BUG-1.6: tick was undefined — clock froze after login
+function tick(){ startClockTick(); }
 try{startClockTick();}catch(e){}try{setInterval(tick,1000);}catch(e){}
 function applyTheme(){document.documentElement.setAttribute('data-theme',S.darkMode?'dark':'light');const sw=$('dmsw');const ic=$('dmi');if(sw)sw.classList.toggle('on',S.darkMode);if(ic)ic.textContent=S.darkMode?'☀️':'🌙';}
 function toggleDark(){S.darkMode=!S.darkMode;dataStore.saveDarkMode(S.darkMode);applyTheme();}
@@ -15081,6 +16229,9 @@ setTimeout(function restoreSession(){
       $('tbrl').textContent=CU.role==='admin'?'Admin':'Cashier';
       $('tbav').textContent=CU.nm[0].toUpperCase();
       $('lsn').textContent=S.settings.storeName||"Kyrie's Sari-Sari Store";
+      // PIN button: admin always visible; cashier only if PIN not yet set
+      const _pinBtn=$('pin-topbar-btn');if(_pinBtn)_pinBtn.style.display=(CU.role==='admin'||!CU._hasPIN)?'inline-flex':'none';
+      showFloatChatBtn();
       buildTabs();
       applyTheme();
       switchTab('dashboard');
@@ -15112,12 +16263,12 @@ async function doLogin(){
   $('le').textContent='⏳ Verifying…';
   loadFromStorage();
   const user=S.users.find(u=>u.un===un);
-  if(!user){$('le').textContent='❌ Incorrect username or password.';return;}
+  if(!user){$('le').textContent='❌ Incorrect username or password.';shakeEl('le');shakeEl('lp');return;}
   if(user.inactive){$('le').textContent='❌ This account has been deactivated. Please contact the store owner.';return;}
 
   // Verify password — supports both PBKDF2 and legacy btoa
   const { valid, needsMigration } = await secVerify(pw, user.pw);
-  if(!valid){$('le').textContent='❌ Incorrect username or password.';return;}
+  if(!valid){$('le').textContent='❌ Incorrect username or password.';shakeEl('le');shakeEl('lp');return;}
 
   // Deep-copy user object so CU is fully independent of S.users reference
   CU={id:user.id,nm:user.nm,un:user.un,role:user.role,created:user.created||'',_hasPIN:!!user.pin};
@@ -15134,9 +16285,24 @@ async function doLogin(){
   auditLog('login', `Logged in as ${CU.role}`, CU.id);
 
   dataStore.appendLoginLog({uid:CU.id,nm:CU.nm,role:CU.role,time:new Date().toLocaleString('en-PH'),action:'login'});
-  // Persist session — survives page refresh within the same browser tab/session
-  try{sessionStorage.setItem('kyries_cu',JSON.stringify(CU));}catch(e){}
   $('le').textContent='';
+  // V9.0.B: Check if another user's shift is still open — warn but allow cashier to proceed
+  const _otherOpenShift = (S.shifts||[]).find(sh => sh.status === 'open' && sh.openedById !== CU.id);
+  if (_otherOpenShift) {
+    const _proceed = confirm(`⚠️ "${_otherOpenShift.openedBy}" still has an open shift from ${new Date(_otherOpenShift.openedAt).toLocaleString('en-PH')}.\n\nPlease ask them to close their shift first before you sign in, to avoid cash discrepancies.\n\nProceed anyway?`);
+    if (!_proceed) { CU = null; $('le').textContent = ''; return; }
+  }
+  // Persist session AFTER all confirmation checks pass
+  try{sessionStorage.setItem('kyries_cu',JSON.stringify(CU));}catch(e){}
+  // V9.0.C FIX: Always show the app immediately — never block login on shift modal.
+  // If cashier has no open shift, show app first, then nudge them to open one.
+  // This prevents the stuck-on-login-screen bug where dismissing the shift modal
+  // left the cashier unable to proceed (only page refresh would work).
+  const _needsShift = CU.role === 'cashier' &&
+    !(S.shifts||[]).find(sh => sh.status === 'open' && sh.openedById === CU.id);
+  _pendingCashierLogin = false; // always reset — login completes fully now
+  // V9: update shift indicator on login
+  setTimeout(updateShiftUI, 100);
   try{
     $('LS').style.display='none';
     $('AP').style.cssText='display:flex;flex-direction:column';
@@ -15150,7 +16316,16 @@ async function doLogin(){
     switchTab('dashboard');
     updBadge();
     updateStoreBanner();
+    // PIN button: admin always visible; cashier only if PIN not yet set
+    const _pinBtn=$('pin-topbar-btn');if(_pinBtn)_pinBtn.style.display=(CU.role==='admin'||!CU._hasPIN)?'inline-flex':'none';
     secStartSession(); // ← start session timeout + idle lock timer
+    // V9.0.C FIX: nudge cashier to open shift AFTER app UI is fully shown
+    if (_needsShift) {
+      setTimeout(() => {
+        openShiftModal();
+        notify('⏱ Please open your shift to start working.', 'info', 0);
+      }, 400);
+    }
     // After UI is shown, silently refresh from IDB in case admin updated
     // data (e.g. gcashCapital, rates, products) on another session.
     // This ensures cashier always sees the latest values without blocking login.
@@ -15178,6 +16353,16 @@ async function doLogin(){
 function doLogout(){
   secClearTimers(); // stop session timeout + idle lock
   aesClearKey();   // clear AES session key
+  // V9.0.C: cashier auto-close shift on logout — use proper modal, not browser prompt
+  if (CU && CU.role === 'cashier') {
+    const _myShift = (S.shifts||[]).find(sh => sh.status === 'open' && sh.openedById === CU.id);
+    if (_myShift) {
+      _pendingLogout = true;
+      openShiftModal();
+      notify('⏱ Please close your shift before signing out', 'warn', 0);
+      return; // doLogout will be called again after doCloseShift completes
+    }
+  }
   if(CU){
     auditLog('logout', 'Logged out', CU.id);
     dataStore.appendLoginLog({uid:CU.id,nm:CU.nm,role:CU.role,time:new Date().toLocaleString('en-PH'),action:'logout'});
@@ -15186,6 +16371,9 @@ function doLogout(){
   // Clear persisted session
   try{sessionStorage.removeItem('kyries_cu');}catch(e){}
   CU=null;
+  // V9.0.C: hide PIN btn and float chat on logout
+  const _pb=$('pin-topbar-btn');if(_pb)_pb.style.display='none';
+  hideFloatChatBtn();
   TABS=[];
   // Hide notification bell
   const bell=$('ntfbell');if(bell)bell.style.display='none';
@@ -15216,13 +16404,14 @@ const ATABS=[
   {id:'creditLedger',lbl:'📒 Debt Ledger'},
   {id:'settings',    lbl:'⚙️ More'},
 ];
-// CASHIER: no Debt Ledger tab — cashier sees credit info only at POS
+// CASHIER: includes Debt Ledger — cashier can view/collect payments (admin approval needed for sensitive ops)
 const CTABS=[
-  {id:'dashboard',lbl:'📊 Dashboard'},
-  {id:'pos',      lbl:'🛒 POS'},
-  {id:'inventory',lbl:'📦 Inventory',badge:true},
-  {id:'gcash',    lbl:'💳 GCash/Maya'},
-  {id:'requests', lbl:'📋 My Requests',badge:true},
+  {id:'dashboard',    lbl:'📊 Dashboard'},
+  {id:'pos',          lbl:'🛒 POS'},
+  {id:'inventory',    lbl:'📦 Inventory',badge:true},
+  {id:'gcash',        lbl:'💳 GCash/Maya'},
+  {id:'creditLedger', lbl:'📒 Debt Ledger'},
+  {id:'requests',     lbl:'📋 My Requests',badge:true},
 ];
 let TABS=[];
 // ╔══════════════════════════════════════════════════════════════════╗
@@ -15241,7 +16430,7 @@ function buildTabs(){
   const ab=$('addbtn');if(ab)ab.style.display=admin?'':'none';
 }
 // Admin-only pages that cashiers cannot navigate to
-const ADMIN_ONLY=['reports','financials','users','insights','settings','aiassistant','creditLedger','security'];
+const ADMIN_ONLY=['reports','financials','users','insights','settings','aiassistant','security']; // creditLedger now allowed for cashier (read + collect only)
 function switchTab(t){
   if(!CU)return;
   const admin=isAd();
@@ -15258,7 +16447,7 @@ function switchTab(t){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   const p=$('tab-'+t);if(p)p.classList.add('active');
   window.scrollTo({top:0,behavior:'smooth'});
-  if(t==='dashboard')renderDash();
+  if(t==='dashboard'){renderDash();updateShiftUI();}
   if(t==='pos'){renderPG();clRenderPOSStrip();setTimeout(()=>{const i=$('bci');if(i)i.focus();},80);}
   if(t==='inventory')renderInv();
   if(t==='reports'){setRDates();renderRpt();switchRSubTab('sales');}
@@ -15521,10 +16710,8 @@ function renderNotifPanel(){
   el.style.display='block';
 
   if(!notifs.length){
-    el.innerHTML=`<div class="al alg" style="display:flex;align-items:center;gap:8px">
-      <span style="font-size:18px">✅</span>
-      <span><strong>All clear!</strong> No alerts or pending requests.</span>
-    </div>`;
+    // V9.0.C: hide the notification panel entirely when all clear — not redundant
+    el.style.display='none';
     return;
   }
 
@@ -15747,6 +16934,21 @@ document.addEventListener('keydown', function kbGlobal(e) {
     }
     // ENTER inside a text/number input that's NOT a modal field: do nothing special
   }
+
+  // ── CTRL+U: toggle Utang / Credit button in POS cart ────────────────────
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'u') {
+    const panel = document.querySelector('.panel.active');
+    if (panel && panel.id === 'tab-pos') {
+      e.preventDefault();
+      const wrap = $('utang-btn-wrap');
+      if (wrap) {
+        const isVisible = wrap.style.display !== 'none';
+        wrap.style.display = isVisible ? 'none' : 'block';
+        if (!isVisible) notify('📒 Utang mode ON — select customer to add credit', 'info', 3000);
+      }
+    }
+    return;
+  }
 });
 /** Handles barcode field submission — looks up product, adds to cart, or triggers Open Food Facts lookup. */
 function scanItem(){
@@ -15805,7 +17007,11 @@ function setCartQty(i,val){
 }
 /** Re-renders the POS cart UI from the current cart[] array state. */
 function renderCart(){
-  $('chdr').textContent=cart.length?`(${cart.reduce((s,c)=>s+c.qty,0)} items)`:'';
+  const itemCount=cart.reduce((s,c)=>s+c.qty,0);
+  $('chdr').textContent=cart.length?`(${itemCount} items)`:'';
+  // Show/hide Clear Cart button in cart header
+  const clrBtn=$('clr-cart-btn');
+  if(clrBtn)clrBtn.style.display=cart.length?'inline-block':'none';
   if(!cart.length){$('cbody').innerHTML='<div style="text-align:center;padding:28px;color:var(--tx3)">Cart is empty</div>';$('ctot').innerHTML='';return;}
   $('cbody').innerHTML=cart.map((it,i)=>`<div class="ci">
     <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.nm}${(it.ty==='tingi'||it.ty==='candy')?' <span class="tg">tingi</span>':it.ty==='stick'?' <span class="tg" style="background:var(--pub);color:var(--put);border-color:#c4b5fd">🚬</span>':''}</div>
@@ -15828,9 +17034,12 @@ function renderCart(){
     <div style="margin-top:10px"><label class="fl">Cash received (₱)</label>
     <input type="number" id="cshi" placeholder="Amount paid…" style="font-size:15px;margin-top:4px" oninput="calcCh(${tot})"/></div>
     <div id="chgout" style="margin-top:8px;min-height:36px"></div>
-    <button class="btn bp bf bx" style="margin-top:10px" onclick="checkout(${tot})">✅ Checkout</button>
-    <button class="btn bf" style="background:var(--pub);color:var(--put);border-color:var(--pu);margin-top:6px" onclick="clOpenCreditCheckout(${tot})">📒 Add to Utang</button>
-    <button class="btn bf" style="margin-top:6px" onclick="clrCart()">🗑 Clear cart</button>
+    <div id="scmsg"></div>
+    <button class="btn bp bf bx" style="margin-top:10px" onclick="_showCheckoutConfirm(${tot})">✅ Checkout — ${peso(tot)}</button>
+    <div id="utang-btn-wrap" style="display:none;margin-top:8px;border-top:1px solid var(--bd);padding-top:8px">
+      <button class="btn bs" style="width:100%;font-size:11px;color:var(--tx2)" onclick="clOpenCreditCheckout(${tot})">📒 Add to Utang / Credit</button>
+      <div style="text-align:center;font-size:10px;color:var(--tx3);margin-top:3px">Press Ctrl+U to toggle</div>
+    </div>
   </div>`;
 }
 function calcCh(tot){
@@ -15839,16 +17048,25 @@ function calcCh(tot){
   const c=cash-tot;
   el.innerHTML=c<0?`<div class="al alr">⚠️ Short by ${peso(Math.abs(c))}</div>`:`<div class="al alg" style="font-size:18px;font-weight:700">Change: ${peso(c)}</div>`;
 }
-function clrCart(){if(!cart.length||confirm('Clear cart? All items will be removed.')){cart=[];renderCart();}}
+function clrCart(){if(!cart.length||confirm('Clear cart? All items will be removed.')){cart=[];renderCart();const _rb=$('rcrd-btn');if(_rb)_rb.style.display='none';}}
 /** Processes current cart as a completed sale. Handles cash, GCash, credit. Saves transaction to IndexedDB. */
 function checkout(tot){
+  // V9.0.B: Block checkout if no active shift
+  const _sh = getActiveShift() || (CU ? (S.shifts||[]).find(s=>s.status==='open'&&s.openedById===CU.id) : null);
+  if (!_sh) {
+    notify('⏱ No active shift! Open a shift before making transactions.', 'error', 6000);
+    if (isAd()) { setTimeout(()=>openShiftModal(), 300); }
+    return;
+  }
   const cash=parseFloat($('cshi')?.value)||0;
-  if(cash<tot){showMsg('scmsg','❌ Cash less than total!','alr');return;}
+  if(cash<tot){notify('❌ Cash less than total!','error');showMsg('scmsg','❌ Cash less than total!','alr');return;}
   _showProcessing('Processing payment…');
   const change=cash-tot,profit=cart.reduce((s,c)=>s+(c.sell-c.buy)*c.qty,0);
   const now=new Date(),code=generateBarcode(),ss=S.settings;
   // FIX BUG-08: include bc in items so return/void can reliably find the product by barcode
-  const txn={rc:code,date:now.toLocaleDateString('en-PH'),time:now.toLocaleTimeString('en-PH'),cashier:CU?.nm||'',cashierId:CU?.id||'',items:cart.map(c=>({nm:c.nm,bc:c.bc,qty:c.qty,price:c.sell,buy:c.buy,ty:c.ty||'regular'})),total:tot,profit,cash,change,status:'completed'};
+  // V9: inject shiftId and deviceId for cashier accountability
+  const _txnShift = getActiveShift();
+  const txn={rc:code,date:now.toLocaleDateString('en-PH'),time:now.toLocaleTimeString('en-PH'),cashier:CU?.nm||'',cashierId:CU?.id||'',shiftId:_txnShift?.id||null,deviceId:S._syncMeta?.deviceId||'unknown',payType:'cash',items:cart.map(c=>({nm:c.nm,bc:c.bc,qty:c.qty,price:c.sell,buy:c.buy,ty:c.ty||'regular'})),total:tot,profit,cash,change,status:'completed'};
   dataStore.createTransaction(txn);
   cart.forEach(it=>{
     const p=S.products.find(x=>x.bc===it.bc);
@@ -15867,7 +17085,10 @@ function checkout(tot){
   r+=`${ln}\n${now.toLocaleString('en-PH')}\nCashier: ${txn.cashier}\n${ln}\n`;
   txn.items.forEach(i=>{const ulbl=i.ty==='stick'?'[stick]':i.ty==='candy'||i.ty==='tingi'?'[tingi]':'';r+=`${i.nm}${ulbl?' '+ulbl:''}\n  ${i.qty} x ${peso(i.price)} = ${peso(i.price*i.qty)}\n`;});
   r+=`${ln}\nTOTAL:  ${peso(tot)}\nCASH:   ${peso(cash)}\nCHANGE: ${peso(change)}\n${ln}\n# ${code}\n${ln}\n${ctr(ss.footer||'Thank you!')}`;
-  $('rcd').textContent='Receipt Code: '+code;$('rpre').textContent=r;$('rcrd').style.display='block';
+  $('rcd').textContent='Receipt Code: '+code;$('rpre').textContent=r;$('rcrd').style.display='none';
+  // V9.0.B: show print receipt button in cart header, notify user
+  const _rcrdBtn=$('rcrd-btn');if(_rcrdBtn)_rcrdBtn.style.display='flex';
+  notify('✅ Sale complete — ₱'+peso(change)+' change · Receipt ready','success',5000);
   lrec=r;$('prc').innerHTML=`<pre>${r}</pre>`;
   syncEngine.onSale(code);
   cart=[];renderCart();renderPG();renderDash();_hideProcessing();$('bci').focus();
@@ -15950,6 +17171,15 @@ function _hideProcessing() {
   const ov = $('prc-processing');
   if (ov) ov.style.display = 'none';
 }
+// V9.0.B: receipt preview toggle
+function toggleReceiptPreview(){
+  const rc=$('rcrd');if(!rc)return;
+  rc.style.display = rc.style.display==='none' ? 'block' : 'none';
+}
+function hideReceiptPreview(){
+  const rc=$('rcrd');if(rc)rc.style.display='none';
+}
+
 function doPrint(){
   // Use Blob URL — safe, no injection risk in document.write
   _printReceipt(lrec);
@@ -16075,13 +17305,14 @@ function doStockCtrl(){
   dataStore.createRequest({id:'sc_'+Date.now(),type:'Stock Adjustment',detail:`${p.nm}: ${detail}`,remarks:detail,by:CU?.nm,uid:CU?.id,at:new Date().toLocaleString('en-PH'),bc:p.bc,status:'approved'});
   syncEngine.onInventoryUpdate(p.bc, act);
   updBadge();closeM('msc');renderInv();renderPG();
-  showMsg('ialerts',`✅ Stock updated: ${p.nm} now has ${p.stock} ${unitLabel(p.ty)}s.`,'alg');
+  showMsg('ialerts',`✅ Stock updated: ${p.nm} now has ${p.stock} ${unitLabel(p.ty)}s.`,'alg');notify(`✅ Stock updated: ${p.nm} → ${p.stock} units`,'success');
 }
 function renderProds(){
   // FIX BUG-07: Products tab was removed; guard against missing prdbody element
+  // V9.0.B FIX BUG-6.7: use softDelete.active so deleted products don't appear
   popCats();
   const el=$('prdbody');if(!el)return;
-  el.innerHTML=S.products.map(p=>{const m=mgn(p);const mc=m>=40?'bgg':m>=20?'bga':'bgr';
+  el.innerHTML=softDelete.active(S.products).map(p=>{const m=mgn(p);const mc=m>=40?'bgg':m>=20?'bga':'bgr';
     return`<tr onclick="openIA('${p.bc}')"><td style="font-family:monospace;font-size:12px">${p.bc}</td><td style="font-weight:700">${p.nm}</td><td>${unitBadgeHtml(p.ty)}</td><td><span class="badge bgb">${p.cat}</span></td><td>${peso(p.buy)}</td><td>${peso(p.sell)} <span style="font-size:10px;color:var(--tx3)">/${unitLabel(p.ty)}</span></td><td><span class="badge ${mc}">${m}%</span></td><td>${p.stock}</td><td>${p.lowAt}</td></tr>`;}).join('')||`<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--tx3)">No products</td></tr>`;
 }
 // UNIT TYPE HELPERS
@@ -16135,11 +17366,7 @@ function openIA(bc){
   openM('mia');
 }
 function iaDelete(bc){
-  const p=S.products.find(x=>x.bc===bc);if(!p)return;
-  if(!confirm(`Delete "${p.nm}"?\nThis cannot be undone.`))return;
-  logInv('delete',p,`Product deleted — remaining stock was ${p.stock}`,0,p.stock,0);
-  dataStore.deleteProduct(bc);
-  updBadge();closeM('mia');renderInv();renderProds();renderPG();
+  pdel=bc;delProdM();
 }
 // Cashier requests a product change — opens remarks modal
 function iaCashierRequest(bc){
@@ -16243,14 +17470,41 @@ function saveProd(){
     logInv('add',newProd,`New product added — initial stock: ${stock}`,stock,0,stock);
   }
   updBadge();closeM('mpm');renderInv();renderProds();renderPG();
-  auditLog(isNew?'add_product':'edit_product', `${isNew?'Added':'Edited'}: ${$('mpn')?.value||'product'}`);
+  const _isNew=!orig;
+  auditLog(_isNew?'add_product':'edit_product', `${_isNew?'Added':'Edited'}: ${nm}`);
 }
 function delProdM(){
   if(!isAd()||!pdel)return;
-  if(!confirm('Delete this product?'))return;
   const p=S.products.find(x=>x.bc===pdel);
-  if(p)logInv('delete',p,`Product deleted — remaining stock was ${p.stock}`,0,p.stock,0);
+  if(!p)return;
+  // V9.0.B: require deletion reason for finance audit
+  const reason = prompt(
+    `Delete "${p.nm}"?\n\nThis action is logged for financial audit.\nPlease select a reason:\n\n1 = Expired / Spoiled\n2 = Damaged\n3 = Lost / Theft\n4 = Discontinued\n5 = Data entry error\n\nEnter reason number (1-5) or type a reason:`
+  );
+  if(reason===null)return; // cancelled
+  const reasonMap={'1':'Expired/Spoiled','2':'Damaged','3':'Lost/Theft','4':'Discontinued','5':'Data entry error'};
+  const reasonText = reasonMap[reason.trim()] || reason.trim() || 'No reason given';
+  if(!confirm(`Delete "${p.nm}" (${p.stock} in stock)?\n\nReason: ${reasonText}\n\nThis will be logged permanently.`))return;
+  logInv('delete',p,`Product deleted — ${p.stock} units lost. Reason: ${reasonText}`,0,p.stock,0);
+  auditLog('delete_product',`${p.nm} (${p.bc}) deleted. Stock lost: ${p.stock}. Reason: ${reasonText}`,p.bc);
+  // Financial impact: log as expense/loss if stock >0
+  if(p.stock>0){
+    const lossAmt = (p.buy||0)*p.stock;
+    if(lossAmt>0){
+      dataStore.createExpense({
+        id:'e_del_'+Date.now(),
+        type:'Inventory Loss',
+        desc:`Deleted: ${p.nm} — ${p.stock} units (${reasonText})`,
+        amount:lossAmt,
+        date:today(),
+        by:CU?.nm,
+        at:new Date().toLocaleString('en-PH'),
+      });
+      notify(`⚠️ ₱${lossAmt.toFixed(2)} inventory loss logged for deleted product "${p.nm}"`, 'warn', 7000);
+    }
+  }
   dataStore.deleteProduct(pdel);updBadge();closeM('mpm');renderInv();renderProds();renderPG();
+  notify(`🗑 "${p.nm}" deleted. Reason: ${reasonText}`, 'info');
 }
 // RESTOCK
 function openRst(){
@@ -16377,7 +17631,7 @@ function confRst(){
   logInv('restock',p,`Direct restock by admin`,qty,prev,p.stock);
   syncEngine.onInventoryUpdate(p.bc, 'restock');
   updBadge();closeM('mrst');renderInv();renderProds();renderPG();
-  showMsg('ialerts',`✅ Restocked ${p.nm}: +${qty}. New stock: ${p.stock}`,'alg');
+  showMsg('ialerts',`✅ Restocked ${p.nm}: +${qty}. New stock: ${p.stock}`,'alg');notify(`✅ Restocked ${p.nm}: +${qty} units`,'success');
 }
 // TRANSACTIONS
 function buildRT(t){
@@ -16694,12 +17948,59 @@ function setRDates(){
   setRPeriod('month');
 }
 function rstDates(){setRPeriod('month');}
+/** Populate V9 filter dropdowns from current data */
+function rptPopulateFilters() {
+  // Cashier dropdown
+  const cashierEl = $('rpt-cashier');
+  if (cashierEl) {
+    const cashiers = [...new Set((S.transactions||[]).map(t => t.cashier).filter(Boolean))].sort();
+    const cur = cashierEl.value;
+    cashierEl.innerHTML = '<option value="">All Cashiers</option>' +
+      cashiers.map(c => `<option value="${esc(c)}"${c===cur?' selected':''}>${esc(c)}</option>`).join('');
+  }
+  // Shift dropdown
+  const shiftEl = $('rpt-shift');
+  if (shiftEl) {
+    const shifts = (S.shifts||[]).slice().reverse();
+    const cur = shiftEl.value;
+    shiftEl.innerHTML = '<option value="">All Shifts</option>' +
+      shifts.map(sh => {
+        const label = `${sh.openedBy} — ${sh.openedAt ? new Date(sh.openedAt).toLocaleDateString('en-PH') : '?'} (${sh.status})`;
+        return `<option value="${esc(sh.id)}"${sh.id===cur?' selected':''}>${esc(label)}</option>`;
+      }).join('');
+  }
+}
+
+/** Reset all V9 report filters */
+function rptResetFilters() {
+  ['rpt-cashier','rpt-paytype','rpt-status','rpt-shift','rtxnsrch'].forEach(id => {
+    const el = $(id); if (el) el.value = '';
+  });
+  renderRpt();
+}
+
 function fTxns(){
   const now=new Date();
   const td=today();
+  // V9 filter values
+  const fCashier  = $('rpt-cashier')?.value  || '';
+  const fPaytype  = $('rpt-paytype')?.value  || '';
+  const fStatus   = $('rpt-status')?.value   || '';
+  const fShift    = $('rpt-shift')?.value    || '';
+
   return S.transactions.filter(t=>{
-    if(t.status==='voided')return false;
-    if(t.status==='returned')return false;
+    // Status filter — if no status filter, hide voided/returned by default (legacy behaviour)
+    if (!fStatus) {
+      if(t.status==='voided')return false;
+      if(t.status==='returned')return false;
+    } else {
+      if (t.status !== fStatus) return false;
+    }
+    // V9 filters
+    if (fCashier && t.cashier !== fCashier) return false;
+    if (fPaytype && (t.payType||'cash') !== fPaytype) return false;
+    if (fShift   && t.shiftId !== fShift) return false;
+    // Date / period filter
     try{
       const d=parseLocalDate(t.date);
       if(!d)return true;
@@ -16717,6 +18018,7 @@ function fTxns(){
   });
 }
 function renderRpt(){
+  rptPopulateFilters(); // V9: refresh dropdown options
   const txns=fTxns();
   const srch=($('rtxnsrch')?.value||'').trim().toLowerCase();
   const rev=txns.reduce((s,t)=>s+t.total,0),profit=txns.reduce((s,t)=>s+t.profit,0),avg=txns.length?rev/txns.length:0;
@@ -16733,25 +18035,46 @@ function renderRpt(){
   $('rtop').innerHTML=ts.map(([n,q])=>`<div class="br_"><div class="brl"><span>${n}</span><span>${q}</span></div><div class="brb"><div class="brf" style="width:${Math.max(3,Math.round((q/mt)*100))}%"></div></div></div>`).join('')||'<div style="color:var(--tx3);font-size:13px">No data</div>';
   // Cap render to 500 most recent rows for performance; full data is in IndexedDB
   const txnRenderLimit = 500;
+  // V9: pay type badge helper
+  const payBadge = pt => {
+    if(pt==='gcash')  return '<span class="badge" style="background:rgba(59,130,246,.15);color:var(--bl);font-size:10px">GCash</span>';
+    if(pt==='credit') return '<span class="badge" style="background:rgba(245,158,11,.15);color:var(--am);font-size:10px">Credit</span>';
+    return '<span class="badge bgb" style="font-size:10px">Cash</span>';
+  };
+  // V9 active filters for row-level display (status filter shown even for voided/returned)
+  const fStatus = $('rpt-status')?.value || '';
   $('rtxns').innerHTML=[...S.transactions].reverse().slice(0, txnRenderLimit).filter(t=>{
-    if(!srch)return true;
-    return t.rc.toLowerCase().includes(srch)||t.cashier.toLowerCase().includes(srch)||(t.items||[]).some(i=>(i.nm||i.name||'').toLowerCase().includes(srch));
+    // Apply status filter at display level
+    if(fStatus && t.status !== fStatus) return false;
+    if(!fStatus && t.status==='voided') return false;
+    if(!fStatus && t.status==='returned') return false;
+    if(!srch) return true;
+    return (t.rc||'').toLowerCase().includes(srch)||(t.cashier||'').toLowerCase().includes(srch)||(t.items||[]).some(i=>(i.nm||i.name||'').toLowerCase().includes(srch))||(t.payType||'').includes(srch);
   }).map(t=>{
     const v=t.status==='voided',rt2=t.status==='returned';
     const tip=v&&t.voidReason?` title="Void: ${t.voidReason}"`:rt2&&t.returnNote?` title="Return: ${t.returnNote}"`:''
     return`<tr onclick="openTM('${t.rc}')"${tip}>
       <td style="font-family:monospace;font-size:11px;font-weight:700;color:${v?'var(--rd)':rt2?'var(--am)':'var(--gn)'}">${t.rc}</td>
-      <td style="font-size:12px">${t.date}</td><td style="font-size:12px">${t.time}</td>
-      <td><span class="badge bgb" style="font-size:10px">${t.cashier}</span></td>
-      <td style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.items.map(i=>i.nm||i.name).join(', ')}</td>
+      <td style="font-size:12px">${t.date}</td><td style="font-size:12px">${t.time||''}</td>
+      <td><span class="badge bgb" style="font-size:10px">${esc(t.cashier||'')}</span></td>
+      <td>${payBadge(t.payType)}</td>
+      <td style="font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(t.items||[]).map(i=>i.nm||i.name).join(', ')}</td>
       <td class="${v?'cr':rt2?'ca':'cg'}" style="font-weight:700">${v?'—':peso(t.total)}</td>
-      <td>${v||rt2?'—':peso(t.profit)}</td><td>${peso(t.change)}</td>
+      <td>${v||rt2?'—':peso(t.profit||0)}</td>
       <td><span class="badge ${v?'bgr':rt2?'bga':'bgg'}">${v?'Voided':rt2?'Returned':'OK'}</span></td>
     </tr>`;
-  }).join('')||'<tr><td colspan="9" style="text-align:center;padding:16px;color:var(--tx3)">No transactions</td></tr>';
+  }).join('')||'<tr><td colspan="9" style="text-align:center;padding:16px;color:var(--tx3)">No transactions match filters</td></tr>';
 }
 // FIX BUG-14: route through dlCSV() for BOM + Excel compatibility
-function expCSV(){let c='Receipt,Date,Time,Cashier,Items,Total,Profit,Cash,Change,Status\n';S.transactions.forEach(t=>{c+=`"${t.rc}","${t.date}","${t.time}","${t.cashier}","${t.items.map(i=>`${i.nm||i.name}x${i.qty}`).join('; ')}",${t.total.toFixed(2)},${(t.profit||0).toFixed(2)},${(t.cash||0).toFixed(2)},${(t.change||0).toFixed(2)},"${t.status||'completed'}"\n`;});dlCSV(`kyries_txns_${new Date().toISOString().slice(0,10)}.csv`,c);}
+// V9: expCSV now respects active filters and includes payType
+function expCSV(){
+  const filtered = fTxns();
+  let c='Receipt,Date,Time,Cashier,PayType,Items,Total,Profit,Cash,Change,Status,ShiftId\n';
+  filtered.forEach(t=>{
+    c+=`"${t.rc}","${t.date}","${t.time||''}","${t.cashier||''}","${t.payType||'cash'}","${(t.items||[]).map(i=>`${i.nm||i.name}x${i.qty}`).join('; ')}",${t.total.toFixed(2)},${(t.profit||0).toFixed(2)},${(t.cash||0).toFixed(2)},${(t.change||0).toFixed(2)},"${t.status||'completed'}","${t.shiftId||''}"\n`;
+  });
+  dlCSV(`kyries_txns_${new Date().toISOString().slice(0,10)}.csv`,c);
+}
 function clrTxns(){if(confirm('Clear ALL sales?')){
   S.transactions=[];
   S.products.forEach(p=>p.sold=0);
@@ -16854,24 +18177,25 @@ function expInvLogCSV(){
 // ╚══════════════════════════════════════════════════════════════════╝
 /**
  * Calculates GCash fee — supports both legacy flat % rate and new tiered % fee table.
- * Tiered fees: gcashTiers array in settings, e.g. [{max:500,pct:1},{max:1000,pct:1},{max:2000,pct:1.5},{pct:2}]
- * Each tier fee = amount * pct / 100. Falls back to flat % rate if no tiers configured.
+ * Tiered fees: gcashTiers array in settings. Tier can have flat (fixed ₱) or pct (% of amount).
+ * e.g. [{max:500,flat:5},{max:1000,pct:1},{max:2000,pct:1.5},{pct:2}]
  */
 function calcGcashFee(amount, type) {
   const tiers = S.settings?.gcashTiers;
   if (tiers && Array.isArray(tiers) && tiers.length > 0) {
-    // Tiered: find the tier whose max >= amount (last tier = catch-all)
     for (const tier of tiers) {
       if (!tier.max || amount <= tier.max) {
-        const pct = tier.pct ?? tier.fee ?? 0; // backward compat: old 'fee' field treated as pct
+        // V9.0.B: support flat (fixed peso) or pct (percentage)
+        if (tier.flat != null) return parseFloat(tier.flat.toFixed(2));
+        const pct = tier.pct ?? tier.fee ?? 0;
         return parseFloat((amount * pct / 100).toFixed(2));
       }
     }
     const last = tiers[tiers.length - 1];
+    if (last.flat != null) return parseFloat(last.flat.toFixed(2));
     const pct = last.pct ?? last.fee ?? 0;
     return parseFloat((amount * pct / 100).toFixed(2));
   }
-  // Legacy flat % rate
   const rate = (S.gcashRates || {})[type] || 1.5;
   return parseFloat((amount * rate / 100).toFixed(2));
 }
@@ -16917,6 +18241,7 @@ function resetGCashTodayIfNewDay(){
 }
 function logGC(){
   const nm=$('gcn').value.trim()||'Customer',a=parseFloat($('gca').value)||0,type=$('gct').value,fee=parseFloat($('gcf').value)||0;
+  const refNo = ($('gcref')?.value||'').trim(); // V9: reference number field
   if(!a||!fee){showMsg('gcmsg','❌ Enter amount and fee.','alr');return;}
   resetGCashTodayIfNewDay();
   // ── WALLET CEILING CHECK ───────────────────────────────────────
@@ -16936,10 +18261,11 @@ function logGC(){
       // Allow to continue - just a warning
     }
   }
-  const gcEntry={nm,amount:a,type,fee,time:new Date().toLocaleString('en-PH'),by:CU?.nm};
+  const gcEntry={nm,amount:a,type,fee,refNo,time:new Date().toLocaleString('en-PH'),by:CU?.nm}; // V9: refNo added
   dataStore.createGCashEntry(gcEntry);
+  auditLog('gcash_transaction', `GCash ${type}: ${nm} — ₱${a.toFixed(2)} · Fee: ₱${fee.toFixed(2)}${refNo?' · Ref:'+refNo:''}`, refNo||gcEntry.time);
   S.gcashTodayFees=(S.gcashTodayFees||0)+fee;S.gcashAllFees=(S.gcashAllFees||0)+fee;
-  dataStore.updateGCashTotals(S.gcashTodayFees,S.gcashAllFees,S.gcashLastFeeDate||today());renderGC();['gcn','gca','gcf'].forEach(id=>$(id).value='');$('gch').style.display='none';showMsg('gcmsg','✅ Logged!','alg');
+  dataStore.updateGCashTotals(S.gcashTodayFees,S.gcashAllFees,S.gcashLastFeeDate||today());renderGC();['gcn','gca','gcf','gcref'].forEach(id=>{const el=$(id);if(el)el.value='';});$('gch').style.display='none';notify('✅ GCash transaction logged!','success',3000);
 }
 function renderGC(){
   resetGCashTodayIfNewDay();
@@ -17000,6 +18326,9 @@ function renderGC(){
   // Render wallet dashboard (admin only)
   renderGCWallet(); // called for both admin and cashier
   renderGCashTiers(); // render tiered fee editor for admin
+  // Hide the entire rates/tiers card for cashiers — they have no business seeing it
+  const ratesCard = $('gcrates-card');
+  if (ratesCard) ratesCard.style.display = isAd() ? '' : 'none';
 }
 function saveGR(){
   if(!isAd()){showMsg('gcmsg','⛔ Only admin can change fee rates.','alr');return;}
@@ -17018,19 +18347,21 @@ function renderGCashTiers(){
   el.innerHTML=`
     <div class="ctit">📊 Tiered Fee Table</div>
     <div style="font-size:12px;color:var(--tx2);margin-bottom:8px;line-height:1.55">
-      Set a <strong>percentage (%)</strong> fee per transaction amount range. Fee = amount × rate%.
+      Tier 1 (≤₱500) uses a <strong>fixed flat ₱ fee</strong> (editable). Other tiers use <strong>percentage %</strong>.
       <strong>Last row = catch-all</strong> for amounts above the highest tier.
     </div>
     <div id="gcash-tiers-list" style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px">
       ${tiers.map((t,i)=>{
-        const pct = t.pct ?? t.fee ?? 0;
+        const isFlat = t.flat != null;
+        const val = isFlat ? t.flat : (t.pct ?? t.fee ?? 0);
         return `
-        <div style="display:flex;gap:6px;align-items:center;font-size:12px">
-          <span style="color:var(--tx2);min-width:80px">${t.max?'Up to '+peso(t.max):'Above all'}</span>
-          <span style="color:var(--tx2)">→ Rate:</span>
-          <input type="number" value="${pct}" min="0" step="0.1" max="100"
-            id="gtier-pct-${i}" style="width:70px;font-size:12px"/>
-          <span style="color:var(--tx2)">%</span>
+        <div style="display:flex;gap:6px;align-items:center;font-size:12px;background:${i===0?'rgba(0,212,170,.06)':'transparent'};border-radius:6px;padding:3px 6px">
+          <span style="color:var(--tx2);min-width:90px">${t.max?'Up to ₱'+t.max.toLocaleString():'Above all'}</span>
+          <span style="color:var(--tx2)">→</span>
+          <input type="number" value="${val}" min="0" step="${isFlat?'1':'0.1'}" max="${isFlat?'9999':'100'}"
+            id="gtier-val-${i}" style="width:70px;font-size:12px"/>
+          <span style="color:var(--tx2);font-size:11px">${isFlat?'₱ flat':'%'}</span>
+          <input type="hidden" id="gtier-isflat-${i}" value="${isFlat?'1':'0'}"/>
           ${i<tiers.length-1?`<input type="number" value="${t.max||''}" min="0" step="100"
             id="gtier-max-${i}" placeholder="max ₱" style="width:80px;font-size:12px"/>
             <span style="color:var(--tx3);font-size:10px">upper limit</span>`
@@ -17044,19 +18375,21 @@ function renderGCashTiers(){
     </div>
     <div id="gcash-tiers-msg" style="margin-top:6px"></div>`;
 }
-
 function saveGCashTiers(){
   const tiers=(S.settings?.gcashTiers)||[];
   const newTiers=tiers.map((t,i)=>{
-    const pct=parseFloat($(`gtier-pct-${i}`)?.value)||0;
+    const isFlat=$(`gtier-isflat-${i}`)?.value==='1';
+    const val=parseFloat($(`gtier-val-${i}`)?.value)||0;
     const maxEl=$(`gtier-max-${i}`);
     const max=maxEl?parseFloat(maxEl.value)||null:null;
-    return max?{max,pct}:{pct};
-  }).filter(t=>t.pct>=0);
+    if(isFlat) return max?{max,flat:val}:{flat:val};
+    return max?{max,pct:val}:{pct:val};
+  }).filter(t=>(t.pct!=null&&t.pct>=0)||(t.flat!=null&&t.flat>=0));
   if(!S.settings)S.settings={..._DEFAULT_STATE.settings};
   S.settings.gcashTiers=newTiers;
   dataStore._persist();
-  showMsg('gcash-tiers-msg','✅ Tiered rates saved!','alg');
+  notify('✅ GCash rates saved!','success');
+  showMsg('gcash-tiers-msg','✅ Saved!','alg');
   auditLog('settings_saved','GCash tiered fees updated');
 }
 
@@ -17761,7 +19094,7 @@ async function saveUser(){
     const newUser = {id:'u_'+Date.now(),nm,un,pw:hashed,role,created:new Date().toISOString()};
     dataStore.createUser(newUser);
   }
-  renderUsers();clearUF();showMsg('ufmsg',`✅ "${nm}" saved!`,'alg');
+  renderUsers();clearUF();showMsg('ufmsg',`✅ "${nm}" saved!`,'alg');notify(`✅ User "${nm}" saved`,'success');
 }
 function clearUF(){
   ['ufid','ufn','ufun','ufpw','ufpw2'].forEach(id=>$(id).value='');
@@ -18178,8 +19511,9 @@ function openApprReturn(id){
 // INSIGHTS — Phase 5: full analytics engine
 function genIns(){
   if(!isAd())return;
-  // Show loading state in all sections
-  ['inskpi','instrend','inscat','insbest','insslow','insrestock','insadvice','insmargin'].forEach(id=>{
+  // Show loading state in all sections — V9.0.B: includes new sections
+  ['inskpi','instrend','inscat','insbest','insslow','insrestock','insadvice','insmargin',
+   'ins-cashier-perf','ins-gcash-analytics','ins-expense-breakdown','ins-credit-health','ins-shift-summary'].forEach(id=>{
     const el=$(id);if(el)el.innerHTML='<div style="text-align:center;padding:20px;color:var(--tx3);font-size:13px">⏳ Calculating…</div>';
   });
   setTimeout(()=>{
@@ -18425,6 +19759,110 @@ function genIns(){
 
     $('instime').textContent=`Last updated: ${new Date().toLocaleString('en-PH')} · ${txns.length} transactions · ${periodDays==='all'?'All time':`Last ${periodDays} days`}`;
 
+    // ── V9.0.B: CASHIER PERFORMANCE ─────────────────────────────
+    const cpEl=$('ins-cashier-perf');
+    if(cpEl){
+      const cpStats={};
+      txns.forEach(t=>{
+        const c=t.cashier||'Unknown';
+        if(!cpStats[c])cpStats[c]={sales:0,revenue:0,profit:0,voids:0,returns:0};
+        if(t.status==='voided')cpStats[c].voids++;
+        else if(t.status==='returned')cpStats[c].returns++;
+        else{cpStats[c].sales++;cpStats[c].revenue+=t.total||0;cpStats[c].profit+=t.profit||0;}
+      });
+      const cpEntries=Object.entries(cpStats).sort((a,b)=>b[1].revenue-a[1].revenue);
+      cpEl.innerHTML=cpEntries.length?cpEntries.map(([name,s])=>{
+        const voidPct=((s.sales+s.voids+s.returns)?((s.voids/(s.sales+s.voids+s.returns))*100):0).toFixed(1);
+        const vc=parseFloat(voidPct)>=20?'var(--rd)':parseFloat(voidPct)>=10?'var(--am)':'var(--gn)';
+        return`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--bd);font-size:12px">
+          <div><strong>${name}</strong><br><span style="color:var(--tx2)">${s.sales} sales · ${s.voids} voids (${voidPct}%)</span></div>
+          <div style="text-align:right"><span style="color:var(--gn);font-weight:700">${peso(s.revenue)}</span><br><span style="color:var(--tx2)">₱${s.profit.toFixed(0)} profit</span></div>
+        </div>`;
+      }).join(''):'<div style="color:var(--tx3);font-size:13px">No cashier data in period.</div>';
+    }
+
+    // ── V9.0.B: GCASH ANALYTICS ──────────────────────────────────
+    const gcEl=$('ins-gcash-analytics');
+    if(gcEl){
+      const gcLogs=S.gcashLog||[];
+      const totalFees=gcLogs.reduce((s,g)=>s+(parseFloat(g.fee)||0),0);
+      const totalAmt=gcLogs.reduce((s,g)=>s+(parseFloat(g.amount||g.amt)||0),0);
+      const missingRef=gcLogs.filter(g=>!g.refNo&&(parseFloat(g.amount||g.amt)||0)>100).length;
+      const byType={};gcLogs.forEach(g=>{byType[g.type]=(byType[g.type]||0)+(parseFloat(g.fee)||0);});
+      gcEl.innerHTML=`
+        <div style="font-size:13px;margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--tx2)">Total Transactions</span><strong>${gcLogs.length}</strong></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--tx2)">Total Amount Processed</span><strong style="color:var(--bl)">${peso(totalAmt)}</strong></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--tx2)">Total Fees Earned</span><strong style="color:var(--gn)">${peso(totalFees)}</strong></div>
+          ${missingRef>0?`<div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--rd)">⚠️ Missing Ref No. (>₱100)</span><strong style="color:var(--rd)">${missingRef}</strong></div>`:''}
+        </div>
+        ${Object.entries(byType).sort((a,b)=>b[1]-a[1]).map(([type,fees])=>`
+          <div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid var(--bd)">
+            <span style="color:var(--tx2)">${type}</span><span style="color:var(--gn);font-weight:700">${peso(fees)}</span>
+          </div>`).join('')}`;
+    }
+
+    // ── V9.0.B: EXPENSE BREAKDOWN ────────────────────────────────
+    const expEl=$('ins-expense-breakdown');
+    if(expEl){
+      const exps=softDelete.active?.(S.expenses||[])||(S.expenses||[]).filter(e=>!e._deleted);
+      const byType={};exps.forEach(e=>{byType[e.type||'Other']=(byType[e.type||'Other']||0)+(parseFloat(e.amount)||0);});
+      const total=Object.values(byType).reduce((s,v)=>s+v,0);
+      expEl.innerHTML=total?Object.entries(byType).sort((a,b)=>b[1]-a[1]).map(([type,amt])=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid var(--bd)">
+          <div style="flex:1"><strong>${type}</strong>
+          <div style="height:4px;border-radius:2px;margin-top:3px;width:${Math.round((amt/total)*100)}%;background:var(--rd);min-width:4px"></div></div>
+          <span style="color:var(--rd);font-weight:700;margin-left:8px">${peso(amt)}</span>
+        </div>`).join('')+'<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;padding:6px 0;color:var(--rd)"><span>Total Expenses</span><span>'+peso(total)+'</span></div>'
+        :'<div style="color:var(--tx3);font-size:13px">No expenses recorded.</div>';
+    }
+
+    // ── V9.0.B: CREDIT HEALTH ────────────────────────────────────
+    const crEl=$('ins-credit-health');
+    if(crEl){
+      const custs=S.creditCustomers||[];
+      const txnsCr=S.creditTransactions||[];
+      const payments=S.creditPayments||[];
+      const totalOwed=txnsCr.filter(t=>t.status!=='paid').reduce((s,t)=>s+(t.amount||0),0);
+      const totalPaid=payments.reduce((s,p)=>s+(p.amount||0),0);
+      const overdueCount=custs.filter(c=>c.status==='overdue'||c.status==='blocked').length;
+      const activeCount=custs.filter(c=>c.status!=='inactive').length;
+      crEl.innerHTML=`
+        <div style="font-size:13px">
+          <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--tx2)">Active Customers</span><strong>${activeCount}</strong></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--tx2)">Total Outstanding</span><strong style="color:var(--rd)">${peso(totalOwed)}</strong></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--tx2)">Total Collected</span><strong style="color:var(--gn)">${peso(totalPaid)}</strong></div>
+          ${overdueCount>0?`<div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--rd)">⚠️ Overdue/Blocked</span><strong style="color:var(--rd)">${overdueCount}</strong></div>`:'<div style="color:var(--gn);padding:4px 0">✅ No overdue accounts</div>'}
+        </div>`;
+    }
+
+    // ── V9.0.B: SHIFT SUMMARY ────────────────────────────────────
+    const shEl=$('ins-shift-summary');
+    if(shEl){
+      const shifts=S.shifts||[];
+      const closed=shifts.filter(s=>s.status==='closed');
+      const open=shifts.filter(s=>s.status==='open');
+      const variances=closed.filter(s=>s.variance!=null);
+      const avgVar=variances.length?variances.reduce((s,sh)=>s+(sh.variance||0),0)/variances.length:0;
+      const shortCount=variances.filter(s=>(s.variance||0)<-10).length;
+      const overCount=variances.filter(s=>(s.variance||0)>10).length;
+      shEl.innerHTML=`
+        <div style="font-size:13px;margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--tx2)">Total Shifts</span><strong>${shifts.length}</strong></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--tx2)">Currently Open</span><strong style="${open.length>1?'color:var(--am)':''}">${open.length}</strong></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--tx2)">Avg Cash Variance</span><strong style="color:${Math.abs(avgVar)>50?'var(--rd)':'var(--gn)'}">${avgVar>=0?'+':''}₱${avgVar.toFixed(2)}</strong></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--tx2)">Short Shifts (>₱10)</span><strong style="color:${shortCount>0?'var(--rd)':'var(--gn)'}">${shortCount}</strong></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--tx2)">Over Shifts (>₱10)</span><strong style="color:${overCount>2?'var(--am)':'var(--gn)'}">${overCount}</strong></div>
+        </div>
+        ${closed.slice(-5).reverse().map(sh=>`
+          <div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid var(--bd)">
+            <span style="color:var(--tx2)">${sh.openedBy} · ${sh.openedAt?new Date(sh.openedAt).toLocaleDateString('en-PH'):''}</span>
+            <span style="font-weight:700;color:${(sh.variance||0)<-10?'var(--rd)':(sh.variance||0)>10?'var(--bl)':'var(--gn)'}">
+              ${sh.variance!=null?((sh.variance>=0?'+':'')+'₱'+Math.abs(sh.variance).toFixed(2)):'—'}
+            </span>
+          </div>`).join('')}`;
+    }
+
   },300);
 }
 // SETTINGS
@@ -18453,6 +19891,9 @@ function loadSt(){
     if(opt)idleSel.value=saved;
     else idleSel.value='30';
   }
+  // Load store hours
+  if($('stopen'))  $('stopen').value  = s.storeOpenTime  || '07:00';
+  if($('stclose')) $('stclose').value = s.storeCloseTime || '21:00';
   renderCL();
   document.querySelectorAll('.st-section').forEach(el=>el.style.display='none');
 }
@@ -18494,22 +19935,49 @@ function setGCRPeriod(p) {
   renderGCReport();
 }
 
+function gcrResetFilters() {
+  ['gcr-cashier','gcr-type','gcr-refno','gcr-search'].forEach(id => { const el=$(id); if(el) el.value=''; });
+  renderGCReport();
+}
+
 function renderGCReport() {
   const logs = S.gcashLog || [];
   const now  = new Date();
   const td   = today();
 
-  // Filter by period
+  // V9: populate cashier dropdown
+  const cashierEl = $('gcr-cashier');
+  if (cashierEl) {
+    const cashiers = [...new Set(logs.map(g => g.by || g.cashierId).filter(Boolean))].sort();
+    const cur = cashierEl.value;
+    cashierEl.innerHTML = '<option value="">All Cashiers</option>' +
+      cashiers.map(c => `<option value="${esc(c)}"${c===cur?' selected':''}>${esc(c)}</option>`).join('');
+  }
+
+  // V9: read active filters
+  const fCashier = $('gcr-cashier')?.value || '';
+  const fType    = $('gcr-type')?.value    || '';
+  const fRefno   = $('gcr-refno')?.value   || '';
+  const fSearch  = ($('gcr-search')?.value || '').trim().toLowerCase();
+
+  // Filter by period then V9 filters
   const filtered = logs.filter(g => {
-    if (_gcrPeriod === 'today')  return g.time && g.time.includes(td.split('/').reverse().join('/') || td);
-    if (_gcrPeriod === 'month') {
+    // Period filter
+    if (_gcrPeriod === 'today') {
+      if (!g.time || !g.time.includes(td.split('/').reverse().join('/') || td)) return false;
+    } else if (_gcrPeriod === 'month') {
       try {
-        // Try to match current month/year in the time string
         const d = new Date(g.time);
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-      } catch(e) { return true; }
+        if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) return false;
+      } catch(e) {}
     }
-    return true; // all time
+    // V9 filters
+    if (fCashier && (g.by||g.cashierId||'') !== fCashier) return false;
+    if (fType    && g.type !== fType) return false;
+    if (fRefno === 'missing' && g.refNo) return false;
+    if (fRefno === 'has'     && !g.refNo) return false;
+    if (fSearch  && !(g.nm||'').toLowerCase().includes(fSearch)) return false;
+    return true;
   });
 
   const totalAmt  = filtered.reduce((s,g) => s + (parseFloat(g.amount)||0), 0);
@@ -18604,8 +20072,9 @@ function renderGCReport() {
       <td><span class="badge bgg" style="font-size:10px">${g.type}</span></td>
       <td class="ca" style="font-weight:700">${peso(g.amount)}</td>
       <td class="cg" style="font-weight:700">${peso(g.fee)}</td>
+      <td style="font-size:11px;color:${g.refNo?'var(--gn)':'var(--rd)'};font-weight:${g.refNo?'600':'400'}">${g.refNo?esc(g.refNo):'⚠️ No ref'}</td>
       <td style="font-size:11px;color:var(--tx3)">${esc(g.by||'—')}</td>
-    </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--tx3);padding:16px">No transactions in this period.</td></tr>';
+    </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--tx3);padding:16px">No transactions match filters.</td></tr>';
 }
 
 function renderDsInfo(){
@@ -18670,12 +20139,14 @@ function saveSt(){
     contact:$('stc').value,
     footer:$('stf').value,
     idleMinutes:idleVal,
+    storeOpenTime:  $('stopen')?.value  || '07:00',
+    storeCloseTime: $('stclose')?.value || '21:00',
   });
   $('tbn').textContent=S.settings.storeName;
   $('lsn').textContent=S.settings.storeName;
   secResetIdle();
   auditLog('settings_saved','Store settings updated');
-  showMsg('stmsg','✅ Saved!','alg');
+  showMsg('stmsg','✅ Saved!','alg');notify('💾 Settings saved','save');
 }
 function renderCL(){
   $('catlist').innerHTML=S.categories.map((c,i)=>`
@@ -18685,7 +20156,15 @@ function renderCL(){
     </div>`).join('')||'<div style="color:var(--tx3);font-size:12px;padding:8px 0">No categories yet.</div>';
 }
 function addCat(){const n=$('newcat').value.trim();if(!n)return;if(S.categories.includes(n)){showMsg('stmsg','⚠️ Already exists.','ala');return;}S.categories.push(n);if(!S.catMargins[n])S.catMargins[n]=30;dataStore.saveCategories(S.categories,S.catMargins);$('newcat').value='';renderCL();popCats();}
-function remCat(i){if(!confirm('Remove?'))return;S.categories.splice(i,1);dataStore.saveCategories(S.categories,S.catMargins);renderCL();popCats();}
+function remCat(i){
+  const catName = S.categories[i];
+  if(!catName||!confirm(`Remove category "${catName}"?\n\nProducts in this category will keep "${catName}" as their category label but it won't appear as a filter button.`))return;
+  // V9.0.B FIX BUG-6.12: do NOT null-out products — they keep the old category name as text
+  S.categories.splice(i,1);
+  dataStore.saveCategories(S.categories,S.catMargins);
+  renderCL();popCats();
+  notify(`Category "${catName}" removed. Products keep their existing category label.`,'warn');
+}
 function changePW(){
   const o=$('cpold').value,n=$('cpnew').value,n2=$('cpnew2').value,u=S.users.find(x=>x.id===CU.id);
   if(!u){showMsg('cpmsg','❌ User not found.','alr');return;}
@@ -18697,7 +20176,7 @@ function changePW(){
     secHash(n).then(hashed => {
       u.pw=hashed;
       dataStore.updateUser(u.id,{pw:hashed});
-      showMsg('cpmsg','✅ Password changed successfully!','alg');
+      showMsg('cpmsg','✅ Password changed successfully!','alg');notify('🔐 Password changed','success');
       ['cpold','cpnew','cpnew2'].forEach(id=>$(id).value='');
     });
   });
@@ -18759,7 +20238,10 @@ function expData(){
     creditCustomers:    S.creditCustomers    || [],
     creditTransactions: S.creditTransactions || [],
     creditPayments:     S.creditPayments     || [],
-    auditLog:           (S.auditLog          || []).slice(-500), // last 500 entries in backup
+    auditLog:           (S.auditLog          || []).slice(-1000), // V9: increased to last 1000 in backup
+    // V9 new collections
+    shifts:             S.shifts             || [],
+    importHistory:      (S.importHistory     || []).slice(-50),   // last 50 import fingerprints
   };
   const json=JSON.stringify(syncFile,null,2);
   const date=now.slice(0,10);
@@ -18770,6 +20252,8 @@ function expData(){
   a.download=fname;a.click();
   syncQueue.push('settings','update','exportSnapshot',{ts:now,fname,deviceId:S._syncMeta?.deviceId,by:CU?.nm});
   syncEngine.runCycle('export');
+  auditLog('backup_export', `JSON backup downloaded: ${fname}`, fname);
+  notify(`💾 Backup saved: ${fname}`, 'save', 6000); // V9.0.C: notify on every backup download
   showMsg('expjsonmsg',`✅ Smart Sync File saved: ${fname} — transfer to other device and use Import → Smart Merge.`,'alg');
   updateStoreBanner();
   if($('dstore'))renderStoreDash();
@@ -18796,6 +20280,7 @@ function previewImport(input){
     const el=$(id);if(el)el.style.display='none';
   });
   $('impmsg').innerHTML='';
+  const _mdd=$('imp-merge-detail');if(_mdd)_mdd.innerHTML='';
   const file=input?.files?.[0];if(!file)return;
   if(!file.name.endsWith('.json')){showMsg('impmsg','❌ Please select a valid .json sync file.','alr');input.value='';return;}
   const reader=new FileReader();
@@ -18906,12 +20391,34 @@ function clearImport(){
 function doImport(){
   if(!isAd()){showMsg('impmsg','❌ Admin only.','alr');return;}
   if(!_importData){showMsg('impmsg','❌ No file loaded.','alr');return;}
+
+  // V9: Import fingerprint — replay-attack protection
+  const _fpSrc = JSON.stringify({
+    exported: _importData._exported || '',
+    deviceId: _importData._deviceId || '',
+    txnCount: (_importData.transactions||[]).length,
+    prodCount: (_importData.products||[]).length,
+  });
+  const _fp = btoa(_fpSrc).slice(0, 40);
+  const _prevImports = S.importHistory || [];
+  const _alreadyImported = _prevImports.some(h => h.fp === _fp);
+  if (_alreadyImported) {
+    const _prev = _prevImports.find(h => h.fp === _fp);
+    if (!confirm(`⚠️ This exact backup file was already imported on ${_prev?.at || 'a previous date'}.\n\nImporting again may cause duplicate data.\n\nProceed anyway?`)) return;
+  }
+  // Record this import fingerprint
+  S.importHistory = _prevImports;
+  S.importHistory.push({ fp: _fp, at: new Date().toISOString(), by: CU?.nm, mode: (document.querySelector('input[name="impmode"]:checked')||{}).value||'merge' });
+  if (S.importHistory.length > 200) S.importHistory.splice(0, S.importHistory.length - 200);
+
   const modeEl=document.querySelector('input[name="impmode"]:checked');
   const mode=modeEl?modeEl.value:'merge';
   if(mode==='replace'){
     if(!confirm('⚠️ REPLACE all current data?\n\nThis permanently overwrites everything.\n\nProceed?'))return;
+    auditLog('restore_replace', `Full data replace from backup: ${_importData._exported||'unknown date'}`, _fp);
     doImportReplace(_importData);
   } else {
+    auditLog('restore_merge', `Smart merge from backup: ${_importData._exported||'unknown date'}`, _fp);
     doImportSmartMerge(_importData);
   }
 }
@@ -18929,7 +20436,7 @@ function doImportReplace(data){
     clearImport();
     logInv('edit',{bc:'',nm:'SYSTEM',cat:''},'Full data replace via Phase 10C import',0,null,null);
     syncQueue.push('settings','update','replaceImport',{ts:new Date().toISOString(),by:CU?.nm});
-    showMsg('impmsg',`✅ Replace complete — ${(data.products||[]).length} products, ${(data.transactions||[]).length} transactions loaded.`,'alg');
+    showMsg('impmsg',`✅ Replace complete — ${(data.products||[]).length} products, ${(data.transactions||[]).length} transactions loaded.`,'alg');notify(`✅ Data replaced — ${(data.products||[]).length} products loaded`,'success',7000);
     applyTheme();switchTab('dashboard');
     syncEngine.runCycle('replace_import');
   }catch(err){showMsg('impmsg','❌ Replace failed — file may be corrupted.','alr');}
@@ -18983,12 +20490,17 @@ function doImportSmartMerge(data){
 
     // Transactions — ID: receipt code. Rule: registered as immutable (Phase 10D)
     // but status updates (void/return) from another device are accepted if newer
+    // V9 FIX: NEVER allow a local voided/returned status to be overwritten by import
     const localRCMap=new Map(S.transactions.map(t=>[t.rc,t]));
     (data.transactions||[]).forEach(t=>{
       const local=localRCMap.get(t.rc);
       if(!local){
         S.transactions.push(t);localRCMap.set(t.rc,t);report.transactions.added++;
       } else {
+        // V9 GUARD: immutable financial status — voided/returned can never be reversed by import
+        const localFinalized = local.status === 'voided' || local.status === 'returned';
+        const incomingDowngrade = localFinalized && t.status === 'completed';
+        if(incomingDowngrade){report.transactions.skipped++;return;}
         const decision=conflictRules.resolve('transactions',local,t);
         if(decision==='take_incoming'){
           const idx=S.transactions.findIndex(x=>x.rc===t.rc);
@@ -19140,6 +20652,28 @@ function doImportSmartMerge(data){
       report.credit.payments.added++;
     });
     // ── END § 20 CREDIT MERGE ────────────────────────────────────────
+
+    // ── V9: SHIFTS MERGE — immutable records, add new only ───────────
+    const localShiftIds = new Set((S.shifts||[]).map(sh=>sh.id));
+    (data.shifts||[]).forEach(sh => {
+      if (!sh?.id || localShiftIds.has(sh.id)) return;
+      S.shifts = S.shifts || [];
+      S.shifts.push({...sh});
+      localShiftIds.add(sh.id);
+    });
+
+    // ── V9: AUDIT LOG MERGE — append incoming not already present ────
+    const localAuditIds = new Set((S.auditLog||[]).map(a=>a.id));
+    (data.auditLog||[]).forEach(a => {
+      if (!a?.id || localAuditIds.has(a.id)) return;
+      S.auditLog = S.auditLog || [];
+      S.auditLog.push({...a});
+      localAuditIds.add(a.id);
+    });
+    // Keep sorted by ts, cap at 5000
+    S.auditLog = (S.auditLog||[]).sort((a,b)=>(a.ts||'')>(b.ts||'')?1:-1).slice(-5000);
+    // ── END V9 MERGES ─────────────────────────────────────────────────
+
     syncQueue.push('settings','update','smartMerge',{
       ts:new Date().toISOString(),by:CU?.nm,
       fromDevice:data._deviceId||'unknown',report
@@ -19160,7 +20694,7 @@ function doImportSmartMerge(data){
   }
 }
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║  KPOS.V8.3 — EXCEL EXPORT ENGINE                               ║
+// ║  KPOS.V9.0.C — EXCEL EXPORT ENGINE                               ║
 // ║  One button → one .xlsx file with multiple sheets:             ║
 // ║    1. Summary (overview + projected pie data)                  ║
 // ║    2. Inventory                                                ║
@@ -19340,7 +20874,7 @@ function expAllExcel() {
   setTimeout(() => URL.revokeObjectURL(url), 3000);
 
   auditLog('backup_export','Excel data export downloaded');
-  showMsg('expcsv_msg', `✅ Excel export saved: ${fname} (7 sheets — Summary, Inventory, Sales, Expenses, GCash, Debt Ledger, Credit Transactions)`, 'alg');
+  showMsg('expcsv_msg', `✅ Excel export saved: ${fname} (7 sheets — Summary, Inventory, Sales, Expenses, GCash, Debt Ledger, Credit Transactions)`, 'alg');notify(`💾 Excel export saved: ${fname}`,'save');
 }
 
 /**
@@ -19954,29 +21488,34 @@ function getDaysSinceBackup(){
 function updateStoreBanner(){
   const banner=$('storebanner');if(!banner)return;
   if(!isAd()){banner.style.display='none';return;}
-  try{if(sessionStorage.getItem('kyries_banner_dismissed')==='1'){banner.style.display='none';return;}}catch(e){}
-  banner.style.display='flex';
+  // V9.0.C: only show if dismissed key is expired (weekly) or never backup
+  try{
+    const dismissed=localStorage.getItem('kyries_banner_dismissed_until');
+    if(dismissed && new Date().toISOString() < dismissed){banner.style.display='none';return;}
+  }catch(e){}
   const days=getDaysSinceBackup();
+  // Only show if no backup ever OR backup is 7+ days overdue
+  if(days !== -1 && days < 7){banner.style.display='none';return;}
+  banner.style.display='flex';
   const warnEl=$('sbnr-backup-warn');
   const msgEl=$('sbnr-msg');
   if(days===-1){
     if(warnEl){warnEl.style.display='inline';warnEl.textContent='⚠️ No backup yet!';}
-    if(msgEl)msgEl.textContent='Data is saved on this device only — never synced.';
-  } else if(days===0){
-    if(warnEl){warnEl.style.display='none';}
-    if(msgEl)msgEl.textContent='✅ Backed up today. Data saved on this device only.';
-  } else if(days<=3){
-    if(warnEl){warnEl.style.display='inline';warnEl.textContent=`Last backup: ${days}d ago`;}
-    if(msgEl)msgEl.textContent='Data is saved on this device only.';
+    if(msgEl)msgEl.textContent='Data is on this device only — never synced or backed up.';
   } else {
     if(warnEl){warnEl.style.display='inline';warnEl.textContent=`⚠️ Last backup: ${days} days ago!`;}
-    if(msgEl)msgEl.textContent='Data is saved on this device only — backup overdue.';
+    if(msgEl)msgEl.textContent='Backup is overdue — export a JSON backup today.';
   }
 }
 
 function dismissBanner(){
-  try{sessionStorage.setItem('kyries_banner_dismissed','1');}catch(e){}
+  // V9.0.C: dismiss for 7 days (weekly reminder)
+  try{
+    const until=new Date(Date.now()+7*24*60*60*1000).toISOString();
+    localStorage.setItem('kyries_banner_dismissed_until',until);
+  }catch(e){}
   const b=$('storebanner');if(b)b.style.display='none';
+  notify('✅ Reminder dismissed — you\'ll be reminded again in 7 days','info',4000);
 }
 
 // Dashboard storage notice card — admin only
@@ -20107,7 +21646,7 @@ function cancelFactReset(){
   openM('mfactreset');
 }
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║  § 20  CREDIT / UTANG SYSTEM                        KPOS.V8.3 ║
+// ║  § 20  CREDIT / UTANG SYSTEM                        KPOS.V9.0.C ║
 // ║  Customer registration, debt tracking, payment collection       ║
 // ║  Auto-block, penalty engine, legal agreement generator          ║
 // ║  Offline-first — all data in S.creditCustomers etc.             ║
@@ -20230,6 +21769,12 @@ function clRenderLedger() {
 
   const listEl = $('cl-customer-list');
   if (!listEl) return;
+
+  // Cashier mode: hide admin-only header buttons, show view-only notice
+  const _hdrBtns = $('cl-admin-header-btns');
+  if (_hdrBtns) _hdrBtns.style.display = isAd() ? 'flex' : 'none';
+  const _notice = $('cl-cashier-notice');
+  if (_notice) _notice.style.display = isAd() ? 'none' : 'block';
 
   if (!visible.length) {
     listEl.innerHTML = `<div style="text-align:center;padding:40px;color:var(--tx2)">
@@ -20904,11 +22449,11 @@ function clRenderDetailTab(tab) {
   // ── Action buttons (common to all tabs) ──────────────────────────────
   if (btns) btns.innerHTML = `
     <button class="btn" onclick="closeM('mcl-detail')">Close</button>
-    ${isBlocked
+    ${isAd() ? (isBlocked
       ? `<button class="btn bs bo_" onclick="clUnblock('${c.id}')">🔓 Unblock</button>`
-      : `<button class="btn bd bs" onclick="clBlock('${c.id}')">🚫 Block</button>`}
+      : `<button class="btn bd bs" onclick="clBlock('${c.id}')">🚫 Block</button>`) : ''}
     ${bal > 0
-      ? `<button class="btn bp" onclick="clOpenPaymentMulti('${c.id}')">💰 Pay All</button>`
+      ? `<button class="btn bp" onclick="clOpenPaymentMulti('${c.id}')">💰 Collect Payment</button>`
       : ''}`;
 }
 
@@ -21975,6 +23520,35 @@ function clClearCreditPick() {
 }
 
 /**
+ * Shows the utang amount confirmation popup before final recording.
+ * Called when cashier clicks "✅ Confirm Utang" — shows amount + customer name for double-check.
+ */
+function clShowUtangAmountConfirm() {
+  if (!_clPickedCustomer || !cart.length) return;
+  const tot = cart.reduce((s,i) => s + i.sell * i.qty, 0);
+  const partialEl = $('mclco-partial-pay');
+  const partial = partialEl ? Math.max(0, parseFloat(partialEl.value) || 0) : 0;
+  const toCredit = Math.max(0, parseFloat((tot - partial).toFixed(2)));
+  const itemCount = cart.reduce((s,c) => s + c.qty, 0);
+  // Populate confirmation modal
+  if ($('uc-name'))   $('uc-name').textContent   = _clPickedCustomer.name;
+  if ($('uc-amount')) $('uc-amount').textContent  = peso(toCredit) + (partial > 0 ? ` credited (${peso(partial)} cash paid)` : '');
+  if ($('uc-items'))  $('uc-items').textContent   = `${itemCount} item${itemCount !== 1 ? 's' : ''} · Total ${peso(tot)}`;
+  openM('mcl-utang-confirm');
+}
+
+/**
+ * Called when user clicks "Yes, Confirm" in the utang amount confirmation popup.
+ * Closes the popup and proceeds with the actual save.
+ */
+function clFinalConfirmUtang() {
+  closeM('mcl-utang-confirm');
+  // Close the checkout modal too then process
+  closeM('mcl-checkout');
+  clConfirmCreditCheckout();
+}
+
+/**
  * Confirms and saves the credit transaction.
  * Mirrors checkout() exactly for stock deduction and receipt,
  * but saves to S.creditTransactions instead of a paid sale.
@@ -22057,6 +23631,7 @@ function clConfirmCreditCheckout() {
     profit,
     cash:          0,
     change:        0,
+    payType:       'credit',
     paymentMethod: 'credit',
     creditCustomerId:   c.id,
     creditCustomerName: c.name,
@@ -22152,10 +23727,12 @@ function clConfirmCreditCheckout() {
   r += `${dln}\n`;
   r += `${ctr(ss.footer || 'Thank you! God bless!')}\n`;
 
-  // Show receipt
+  // Show receipt — V9.0.B: hidden by default, print button shown
   if ($('rcd'))  $('rcd').textContent  = 'Receipt Code: ' + code;
   if ($('rpre')) $('rpre').textContent = r;
-  if ($('rcrd')) $('rcrd').style.display = 'block';
+  if ($('rcrd')) $('rcrd').style.display = 'none';
+  const _rcrdBtn2=$('rcrd-btn');if(_rcrdBtn2)_rcrdBtn2.style.display='flex';
+  notify('✅ Credit sale recorded · Receipt ready','success',5000);
   lrec = r;
   if ($('prc'))  $('prc').innerHTML = `<pre>${r}</pre>`;
 
@@ -22482,6 +24059,93 @@ function qrPrintCode() {
   win.document.close();
 }
 
+// ── EXPORT ALL QR CODES TO PRINTABLE PAGE ─────────────────────────────
+/**
+ * Generates a printable HTML page with QR codes for all products in inventory.
+ * Each QR code is the product barcode. Laid out in a grid — ready to print as stickers.
+ * Opens in a new window for printing.
+ */
+function exportAllQRCodes() {
+  const products = (S.products || []).filter(p => !p._deleted && p.bc);
+  if (!products.length) {
+    notify('⚠️ No products with barcodes found in inventory.', 'warn', 3000);
+    return;
+  }
+
+  notify(`🖨 Preparing ${products.length} QR codes for print…`, 'info', 2500);
+
+  // Generate QR SVG data URLs using a temp canvas approach via QRCode lib
+  const storeName = S.settings?.storeName || "Kyrie's Store";
+  const now = new Date().toLocaleDateString('en-PH');
+
+  // Build the print page HTML — uses inline QR generation via qrcodejs2
+  const items = products.map(p => `
+    <div class="qr-item">
+      <div class="qr-box" id="qr-${p.bc.replace(/[^a-zA-Z0-9]/g,'_')}"></div>
+      <div class="qr-name">${p.nm||'Unknown'}</div>
+      <div class="qr-bc">${p.bc}</div>
+      <div class="qr-price">₱${(p.sell||0).toFixed(2)}</div>
+    </div>`).join('');
+
+  const win = window.open('', '_blank', 'width=900,height=700');
+  if (!win) { alert('Allow pop-ups to export QR codes.'); return; }
+
+  win.document.write(`<!DOCTYPE html><html><head>
+    <meta charset="utf-8"/>
+    <title>QR Codes — ${storeName}</title>
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:Arial,sans-serif;background:#fff;color:#000;padding:12px}
+      h1{font-size:16px;text-align:center;margin-bottom:4px}
+      .sub{font-size:11px;text-align:center;color:#666;margin-bottom:14px}
+      .grid{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-start}
+      .qr-item{border:1px solid #ccc;border-radius:4px;padding:8px;text-align:center;width:120px;break-inside:avoid}
+      .qr-box{width:90px;height:90px;margin:0 auto 4px}
+      .qr-name{font-size:9px;font-weight:700;line-height:1.2;margin-bottom:2px;word-break:break-word}
+      .qr-bc{font-size:8px;color:#555;font-family:monospace}
+      .qr-price{font-size:9px;font-weight:700;color:#16a34a;margin-top:2px}
+      .no-print{text-align:center;padding:12px;background:#f0f9ff;border-radius:6px;margin-bottom:14px}
+      button{padding:8px 20px;font-size:14px;cursor:pointer;background:#16a34a;color:#fff;border:none;border-radius:4px;margin:4px}
+      @media print{.no-print{display:none}.qr-item{width:100px;padding:5px}.qr-box{width:80px;height:80px}}
+    </style>
+  </head><body>
+    <div class="no-print">
+      <h1>🏪 ${storeName} — QR Code Sheet</h1>
+      <div class="sub">Generated: ${now} · ${products.length} products · Scan barcodes at POS for quick service</div>
+      <button onclick="window.print()">🖨 Print QR Codes</button>
+      <button onclick="window.close()">✕ Close</button>
+    </div>
+    <div class="grid" id="qrgrid">${items}</div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
+    <script>
+      // Wait for QRCode lib, then generate all QR codes
+      function genAll() {
+        var prods = ${JSON.stringify(products.map(p => ({bc: p.bc, id: p.bc.replace(/[^a-zA-Z0-9]/g,'_')})))};
+        prods.forEach(function(p) {
+          var el = document.getElementById('qr-' + p.id);
+          if (!el) return;
+          try {
+            new QRCode(el, {
+              text: p.bc,
+              width: 90,
+              height: 90,
+              colorDark: '#000000',
+              colorLight: '#ffffff',
+              correctLevel: QRCode.CorrectLevel.M
+            });
+          } catch(e) {
+            el.innerHTML = '<div style="font-size:8px;color:red;word-break:break-all">' + p.bc + '</div>';
+          }
+        });
+      }
+      // Try immediately, retry if lib not ready
+      if (typeof QRCode !== 'undefined') genAll();
+      else window.addEventListener('load', genAll);
+    <\/script>
+  </body></html>`);
+  win.document.close();
+}
+
 // ── QR CODE IN INVENTORY TABLE ───────────────────────────────────────
 // Hook: add a tiny QR icon button to each inventory row
 // Injected via renderInv — we patch the row renderer
@@ -22525,7 +24189,7 @@ document.addEventListener('keydown', (e) => {
 
 
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║  § 18  PHASE 6B — AI STORE ASSISTANT                        KPOS.V8.3 ║
+// ║  § 18  PHASE 6B — AI STORE ASSISTANT                        KPOS.V9.0.C ║
 // ║  Primary:  Google Gemini 1.5 Flash (FREE — no credit card)      ║
 // ║  Fallback: Groq Llama3 (FREE — generous limits)                 ║
 // ║  Offline-first: gracefully disabled when no internet.           ║
@@ -22648,11 +24312,26 @@ function aiOnOpen() {
 function aiRenderSetupCard() {
   const sc = $('ai-setup-card');
   if (!sc) return;
-  if (AI.key || AI.demo) {
-    sc.style.display = 'none';
+  sc.style.display = 'block';
+  // V9.0.C: always render the setup card — show connected state with change option
+  if (AI.key && !AI.demo) {
+    const provLabel = AI_PROVIDERS[AI.provider]?.label || AI.provider || 'Unknown';
+    sc.innerHTML = `
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <span style="font-size:24px;flex-shrink:0">🔑</span>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:13px;color:var(--gn);margin-bottom:4px">✅ AI Connected — ${provLabel}</div>
+          <div style="font-size:11px;color:var(--tx2);margin-bottom:10px">Key is saved on this device only.</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn bs" style="font-size:12px" onclick="aiForceShowKeyInput()">🔄 Change Key / Provider</button>
+            <button class="btn bs" style="font-size:12px;color:var(--rd);border-color:var(--rd)" onclick="aiDisconnect()">🔌 Disconnect</button>
+          </div>
+          <div id="ai-key-msg" style="margin-top:6px"></div>
+        </div>
+      </div>`;
     return;
   }
-  sc.style.display = 'block';
+  // No key — show full setup
   sc.innerHTML = `
     <div style="display:flex;gap:10px;align-items:flex-start">
       <span style="font-size:28px;flex-shrink:0">🔑</span>
@@ -22662,7 +24341,6 @@ function aiRenderSetupCard() {
           Choose a provider below — both are <strong>100% free</strong>, no credit card needed.<br>
           Your key is saved <strong>only on this device</strong>.
         </div>
-
         <!-- Provider tabs -->
         <div style="display:flex;gap:6px;margin-bottom:12px">
           <button id="ai-tab-gemini" class="btn bp bs" onclick="aiSelectProvider('gemini')" style="flex:1">
@@ -22672,8 +24350,6 @@ function aiRenderSetupCard() {
             ⚡ Groq Llama3<br><span style="font-size:10px;font-weight:400">Fast · Free tier: generous daily limit</span>
           </button>
         </div>
-
-        <!-- Gemini instructions -->
         <div id="ai-prov-gemini">
           <div class="al alg" style="font-size:12px;margin-bottom:10px;line-height:1.6">
             <strong>How to get your FREE Gemini key:</strong><br>
@@ -22811,6 +24487,116 @@ async function aiTestKey(key, prov, msgEl) {
 }
 
 // ── SKIP / DEMO MODE ─────────────────────────────────────────────────
+// V9.0.C: Floating AI chatbot (bottom-right, all users)
+let _floatChatOpen = false;
+let _floatChatHistory = [];
+
+function toggleFloatChat() {
+  _floatChatOpen = !_floatChatOpen;
+  const panel = $('float-chat-panel');
+  if (panel) panel.style.display = _floatChatOpen ? 'flex' : 'none';
+  const badge = $('float-chat-badge');
+  if (badge) badge.style.display = 'none';
+  if (_floatChatOpen) {
+    setTimeout(() => $('float-chat-input')?.focus(), 100);
+    floatChatUpdateStatus();
+  }
+}
+
+function floatChatUpdateStatus() {
+  const el = $('float-chat-status');
+  if (!el) return;
+  if (!AI.key && !AI.demo) el.textContent = 'Demo mode — add key in Settings for full AI';
+  else if (AI.demo) el.textContent = 'Demo mode';
+  else el.textContent = `Connected · ${AI_PROVIDERS[AI.provider]?.label || AI.provider}`;
+}
+
+function floatChatAppend(role, text) {
+  const msgs = $('float-chat-msgs');
+  if (!msgs) return;
+  const isUser = role === 'user';
+  const div = document.createElement('div');
+  div.style.cssText = `display:flex;justify-content:${isUser?'flex-end':'flex-start'}`;
+  div.innerHTML = `<div style="max-width:85%;background:${isUser?'var(--accent)':'var(--sf2)'};color:${isUser?'#000':'var(--tx)'};
+    border-radius:${isUser?'14px 14px 4px 14px':'14px 14px 14px 4px'};padding:8px 12px;font-size:12px;line-height:1.5;
+    white-space:pre-wrap">${esc(text)}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+async function floatChatSend() {
+  const input = $('float-chat-input');
+  const text = (input?.value || '').trim();
+  if (!text) return;
+  input.value = '';
+  floatChatAppend('user', text);
+  _floatChatHistory.push({ role: 'user', content: text });
+  if (_floatChatHistory.length > 20) _floatChatHistory.splice(0, 2);
+
+  // Loading indicator
+  const msgs = $('float-chat-msgs');
+  const loadDiv = document.createElement('div');
+  loadDiv.id = 'float-chat-load';
+  loadDiv.style.cssText = 'display:flex;justify-content:flex-start';
+  loadDiv.innerHTML = `<div style="background:var(--sf2);border-radius:14px 14px 14px 4px;padding:8px 12px;font-size:12px;color:var(--tx2)">⏳ Thinking…</div>`;
+  if (msgs) { msgs.appendChild(loadDiv); msgs.scrollTop = msgs.scrollHeight; }
+
+  try {
+    let reply = '';
+    if (!AI.key && !AI.demo) {
+      reply = '⚙️ No AI key connected. Go to Settings → AI Assistant to add your free key, or use demo mode.';
+    } else if (AI.demo) {
+      await new Promise(r => setTimeout(r, 600));
+      reply = aiDemoReply(text);
+    } else {
+      const prov = AI_PROVIDERS[AI.provider];
+      reply = await prov.send(AI.key, aiBuildContext(), _floatChatHistory.slice(-10));
+    }
+    _floatChatHistory.push({ role: 'assistant', content: reply });
+    loadDiv.remove();
+    floatChatAppend('assistant', reply);
+  } catch(err) {
+    loadDiv.remove();
+    floatChatAppend('assistant', '⚠️ Error: ' + (err.message || 'Could not reach AI. Check your connection.'));
+  }
+}
+
+// Show float chat button after login
+function showFloatChatBtn() {
+  const btn = $('float-chat-btn');
+  if (btn) btn.style.display = 'flex';
+  floatChatUpdateStatus();
+}
+
+// Hide on logout
+function hideFloatChatBtn() {
+  const btn = $('float-chat-btn');
+  if (btn) btn.style.display = 'none';
+  const panel = $('float-chat-panel');
+  if (panel) panel.style.display = 'none';
+  _floatChatOpen = false;
+  _floatChatHistory = [];
+}
+
+// V9.0.C: force show key input (for Change Key / Provider)
+function aiForceShowKeyInput() {
+  AI.key = null;
+  AI.demo = false;
+  aiRenderSetupCard();
+}
+// V9.0.C: fully disconnect AI
+function aiDisconnect() {
+  if (!confirm('Disconnect AI? You can reconnect anytime with a new key.')) return;
+  try {
+    localStorage.removeItem('kyries_ai_gemini_key');
+    localStorage.removeItem('kyries_ai_groq_key');
+  } catch(e) {}
+  AI.key = null; AI.demo = false; AI.provider = 'gemini';
+  aiRenderSetupCard();
+  aiCheckStatus();
+  notify('🔌 AI disconnected. Paste a new key to reconnect.', 'info');
+}
+
 function aiSkipKey() {
   AI.demo = true;
   AI.key  = null;
@@ -23091,7 +24877,7 @@ window.addEventListener('offline', () => { aiCheckStatus(); aiCheckOnline(); });
 
 
 // ╔══════════════════════════════════════════════════════════════════╗
-// ║  § 19  PHASE 6C — SMART INVENTORY (AI Camera)              KPOS.V8.3 ║
+// ║  § 19  PHASE 6C — SMART INVENTORY (AI Camera)              KPOS.V9.0.C ║
 // ║  Snap a photo of a product → Gemini Vision identifies it        ║
 // ║  → auto-fills Name, Category, Buy/Sell price in Add Product     ║
 // ║  Uses same free Gemini API key as Phase 6B AI Assistant         ║
@@ -23440,5 +25226,54 @@ window.addEventListener('online',  () => { if ($('sizone')?.style.display !== 'n
 window.addEventListener('offline', () => { if ($('sizone')?.style.display !== 'none') siResetZone(false); });
 
 </script>
+<!-- V9.0.C: FLOATING AI CHATBOT (bottom-right, visible to all users) -->
+<div id="float-chat-btn" onclick="toggleFloatChat()" title="AI Store Assistant"
+  style="position:fixed;bottom:20px;right:20px;width:50px;height:50px;border-radius:50%;
+         background:linear-gradient(135deg,#00d4aa,#0066ff);color:#fff;font-size:22px;
+         display:none;align-items:center;justify-content:center;cursor:pointer;
+         box-shadow:0 4px 20px rgba(0,212,170,.4);z-index:800;border:none;
+         transition:transform .2s;user-select:none" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+  🤖<span id="float-chat-badge" style="display:none;position:absolute;top:-2px;right:-2px;
+    background:var(--rd);color:#fff;font-size:9px;font-weight:700;border-radius:50%;
+    width:16px;height:16px;align-items:center;justify-content:center">1</span>
+</div>
+
+<div id="float-chat-panel" style="display:none;position:fixed;bottom:78px;right:20px;
+  width:340px;height:460px;background:var(--sf);border:1px solid var(--bd);
+  border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.5);z-index:800;
+  flex-direction:column;overflow:hidden;
+  animation:floatIn .2s ease">
+  <style>
+    @keyframes floatIn{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
+  </style>
+  <!-- Header -->
+  <div style="background:linear-gradient(135deg,#00d4aa22,#0066ff22);border-bottom:1px solid var(--bd);
+    padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:18px">🤖</span>
+      <div>
+        <div style="font-size:13px;font-weight:700">AI Store Assistant</div>
+        <div style="font-size:10px;color:var(--tx2)" id="float-chat-status">Loading…</div>
+      </div>
+    </div>
+    <button onclick="toggleFloatChat()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--tx2)">✕</button>
+  </div>
+  <!-- Messages -->
+  <div id="float-chat-msgs" style="flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch">
+    <div style="background:var(--sf2);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--tx2);line-height:1.5">
+      👋 Hi! Ask me anything about the store — sales, stock, advice, or calculations.
+    </div>
+  </div>
+  <!-- Input -->
+  <div style="border-top:1px solid var(--bd);padding:8px 10px;display:flex;gap:6px;flex-shrink:0">
+    <input id="float-chat-input" type="text" placeholder="Ask anything…"
+      style="flex:1;font-size:12px;background:var(--sf2);border:1px solid var(--bd);border-radius:20px;
+             padding:7px 12px;color:var(--tx);outline:none"
+      onkeydown="if(event.key==='Enter')floatChatSend()"/>
+    <button onclick="floatChatSend()" style="background:var(--accent);border:none;border-radius:50%;
+      width:32px;height:32px;cursor:pointer;font-size:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center">➤</button>
+  </div>
+  </div><!-- /scroll-wrap -->
+</div>
 </body>
 </html>
