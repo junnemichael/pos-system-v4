@@ -340,25 +340,8 @@ input,select{min-height:40px}
 .pend{background:var(--amb);border:1px solid #fcd34d;border-radius:var(--rs);padding:12px;margin-bottom:8px}
 .void-badge{background:var(--rdb);color:var(--rdt);border:1px dashed var(--rd);border-radius:var(--rs);padding:8px 14px;font-family:monospace;font-size:14px;font-weight:700;text-align:center;margin:8px 0}
 /* PHASE 8E — Storage banner */
-#storebanner{
-  background:linear-gradient(90deg,var(--amb),var(--orb));
-  border-bottom:1px solid #fcd34d;
-  padding:4px 14px;
-  display:flex;align-items:center;justify-content:space-between;gap:8px;
-  font-size:11px;color:var(--amt);
-  position:sticky;top:52px;z-index:190;
-  flex-wrap:nowrap;
-  min-height:32px;
-  white-space:nowrap;
-  overflow:hidden;
-}
-#storebanner>div:first-child{
-  display:flex;align-items:center;gap:6px;
-  overflow:hidden;min-width:0;flex:1;
-}
-#storebanner #sbnr-msg{
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.85;
-}
+/* storebanner hidden — backup warnings now use notify() toasts */
+#storebanner{display:none!important}
 [data-theme=dark] #storebanner{background:linear-gradient(90deg,#451a03,#431407);border-color:#92400e;color:var(--amt)}
 .sbnr-dismiss{background:none;border:1px solid currentColor;border-radius:var(--rs);padding:2px 7px;font-size:10px;cursor:pointer;color:inherit;font-family:inherit;opacity:.75;flex-shrink:0;white-space:nowrap}
 .sbnr-dismiss:hover{opacity:1}
@@ -569,6 +552,8 @@ td{padding:8px 11px;font-size:13px}
   90%{transform:translateX(2px)}
 }
 .kpos-shake{animation:kposShake .45s cubic-bezier(.36,.07,.19,.97) both}
+
+/* float-chat drag handled by fcDrag* functions */
 </style>
 <!-- 
   DEPLOYMENT NOTE (Vercel):
@@ -11629,7 +11614,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 
   <!-- ═══════════════════════════════════════════════════════════════
        SECURITY PANEL — KPOS.V9.0.C
-       PIN lock setup · Audit log viewer
+       System Audit Log · Security settings
        ═══════════════════════════════════════════════════════════════ -->
   <div id="tab-security" class="panel ct">
     <div style="margin-bottom:12px"><button class="btn bs" onclick="switchTab('settings')" style="font-size:12px;color:var(--tx2)">← Back to Settings</button></div>
@@ -11805,8 +11790,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
       </button>
       <button class="st-nav-btn" onclick="switchTab('security')">
         <span class="st-nav-icon">🔐</span>
-        <span class="st-nav-label">Security</span>
-        <span class="st-nav-sub">PIN lock · Audit log</span>
+        <span class="st-nav-label">System Audit Log</span>
+        <span class="st-nav-sub">Audit log · Security</span>
       </button>
       <button class="st-nav-btn" onclick="switchTab('reports')">
         <span class="st-nav-icon">📈</span>
@@ -11819,7 +11804,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
         <span class="st-nav-sub">Profit &amp; expenses</span>
       </button>
       <button class="st-nav-btn" onclick="switchTab('insights')">
-        <span class="st-nav-icon">🤖</span>
+        <span class="st-nav-icon">📡</span>
         <span class="st-nav-label">Insights</span>
         <span class="st-nav-sub">Analytics &amp; trends</span>
       </button>
@@ -13190,15 +13175,50 @@ function shakeEl(id) {
   el.addEventListener('animationend', function() { el.classList.remove('kpos-shake'); }, { once: true });
 }
 
+// PIN cooldown state — persists in memory during session
+const _pinCooldown = { attempts: 0, lockedUntil: 0 };
+
+function _pinCooldownMs() {
+  const a = _pinCooldown.attempts;
+  if (a <= 3) return 30000;       // 1st lockout: 30s
+  if (a <= 6) return 60000;       // 2nd lockout: 60s
+  return 120000;                  // 3rd+ lockout: 2 min
+}
+
 async function secPINSubmit() {
+  // Check cooldown
+  if (_pinCooldown.lockedUntil > Date.now()) {
+    const secs = Math.ceil((_pinCooldown.lockedUntil - Date.now()) / 1000);
+    const msgEl = $('sec-lock-msg');
+    if (msgEl) msgEl.textContent = '🔒 Too many attempts. Try again in ' + secs + 's.';
+    shakeEl('sec-pin-dots');
+    shakeEl('sec-pin-msg');
+    return;
+  }
   const valid = await pinVerify(PIN._digits);
   const msgEl = $('sec-pin-msg');
   if (valid) {
+    _pinCooldown.attempts = 0; _pinCooldown.lockedUntil = 0; // reset on success
     const ov = $('sec-lock-screen');
     if (ov) ov.style.display = 'none';
     secResetIdle();
   } else {
-    if (msgEl) msgEl.textContent = '❌ Wrong PIN. Try again.';
+    _pinCooldown.attempts++;
+    const _attLeft = 3 - (_pinCooldown.attempts % 3);
+    if (_pinCooldown.attempts % 3 === 0) {
+      _pinCooldown.lockedUntil = Date.now() + _pinCooldownMs();
+      const _lockSecs = Math.ceil(_pinCooldownMs() / 1000);
+      if (msgEl) msgEl.textContent = '🔒 Too many attempts. Locked for ' + _lockSecs + 's.';
+      // Start countdown display
+      const _cd = setInterval(() => {
+        const rem = Math.ceil((_pinCooldown.lockedUntil - Date.now()) / 1000);
+        const el = $('sec-lock-msg');
+        if (rem <= 0) { clearInterval(_cd); if (el) el.textContent = ''; return; }
+        if (el) el.textContent = '🔒 Locked. Try again in ' + rem + 's.';
+      }, 1000);
+    } else {
+      if (msgEl) msgEl.textContent = '❌ Wrong PIN. ' + _attLeft + ' attempt' + (_attLeft !== 1 ? 's' : '') + ' left before cooldown.';
+    }
     shakeEl('sec-pin-dots');
     shakeEl('sec-pin-msg');
     PIN._digits = [];
@@ -16244,6 +16264,7 @@ setTimeout(function restoreSession(){
       CU=null;
       $('LS').style.display='flex';
       $('AP').style.display='none';
+  if(typeof aiWidgetHide==='function') aiWidgetHide();
     }
   }).catch(function(err){
     console.error('[POS] Session restore IDB load failed:',err);
@@ -16314,6 +16335,7 @@ async function doLogin(){
     buildTabs();
     applyTheme();
     switchTab('dashboard');
+    showFloatChatBtn(); // show AI float chat button on login
     updBadge();
     updateStoreBanner();
     // PIN button: admin always visible; cashier only if PIN not yet set
@@ -18241,7 +18263,13 @@ function resetGCashTodayIfNewDay(){
 }
 function logGC(){
   const nm=$('gcn').value.trim()||'Customer',a=parseFloat($('gca').value)||0,type=$('gct').value,fee=parseFloat($('gcf').value)||0;
-  const refNo = ($('gcref')?.value||'').trim(); // V9: reference number field
+  // Generate unique ref if user left blank
+  let refNo = ($('gcref')?.value||'').trim();
+  if (!refNo) {
+    // Auto-generate: timestamp millis + 4 random hex chars — unique per tx
+    refNo = Date.now().toString(36).toUpperCase() + Math.random().toString(16).slice(2,6).toUpperCase();
+    refNo = 'AUTO-' + refNo;
+  }
   if(!a||!fee){showMsg('gcmsg','❌ Enter amount and fee.','alr');return;}
   resetGCashTodayIfNewDay();
   // ── WALLET CEILING CHECK ───────────────────────────────────────
@@ -20211,8 +20239,8 @@ function expData(){
   S.products.forEach(p=>{if(!p.syncTs)p.syncTs=now;});
   const syncFile={
     _version:     EXPORT_VERSION,
-    _phase:       '10C',
-    _app:         "Kyrie's Sari-Sari Store POS v5",
+    _phase:       'V9.1',
+    _app:         "Kyrie's Sari-Sari Store POS v9.1",
     _exported:    now,
     _exportedBy:  CU?.nm||'Admin',
     _exportedById:CU?.id||'admin',
@@ -21484,88 +21512,129 @@ function getDaysSinceBackup(){
   return Math.floor(diff/(1000*60*60*24));
 }
 
-// Persistent banner — shown to admin only, dismissed per session via sessionStorage
+// Backup warning — uses notify() toast instead of persistent banner
 function updateStoreBanner(){
-  const banner=$('storebanner');if(!banner)return;
-  if(!isAd()){banner.style.display='none';return;}
-  // V9.0.C: only show if dismissed key is expired (weekly) or never backup
+  // Always hide the old banner element — we use notify() now
+  const banner=$('storebanner');if(banner)banner.style.display='none';
+  if(!isAd())return;
+  // Respect the weekly dismiss
   try{
     const dismissed=localStorage.getItem('kyries_banner_dismissed_until');
-    if(dismissed && new Date().toISOString() < dismissed){banner.style.display='none';return;}
+    if(dismissed && new Date().toISOString() < dismissed) return;
   }catch(e){}
   const days=getDaysSinceBackup();
-  // Only show if no backup ever OR backup is 7+ days overdue
-  if(days !== -1 && days < 7){banner.style.display='none';return;}
-  banner.style.display='flex';
-  const warnEl=$('sbnr-backup-warn');
-  const msgEl=$('sbnr-msg');
-  if(days===-1){
-    if(warnEl){warnEl.style.display='inline';warnEl.textContent='⚠️ No backup yet!';}
-    if(msgEl)msgEl.textContent='Data is on this device only — never synced or backed up.';
-  } else {
-    if(warnEl){warnEl.style.display='inline';warnEl.textContent=`⚠️ Last backup: ${days} days ago!`;}
-    if(msgEl)msgEl.textContent='Backup is overdue — export a JSON backup today.';
-  }
+  // Only notify if no backup ever OR backup is 7+ days overdue
+  if(days !== -1 && days < 7) return;
+  // Show as a persistent warn toast (duration 0 = stays until dismissed)
+  const msg = days === -1
+    ? '💾 Local Storage Mode — no backup yet! <a onclick="expData();updateStoreBanner()" style="cursor:pointer;text-decoration:underline;color:inherit">Backup now</a>'
+    : `💾 Backup overdue — last backup was ${days} days ago. <a onclick="expData();updateStoreBanner()" style="cursor:pointer;text-decoration:underline;color:inherit">Backup now</a>`;
+  // Use a slight delay so it doesn't fire simultaneously with login toasts
+  setTimeout(() => notify(msg, 'warn', 0), 1200);
 }
 
 function dismissBanner(){
-  // V9.0.C: dismiss for 7 days (weekly reminder)
+  // Keep dismiss for 7 days
   try{
     const until=new Date(Date.now()+7*24*60*60*1000).toISOString();
     localStorage.setItem('kyries_banner_dismissed_until',until);
   }catch(e){}
   const b=$('storebanner');if(b)b.style.display='none';
-  notify('✅ Reminder dismissed — you\'ll be reminded again in 7 days','info',4000);
 }
 
 // Dashboard storage notice card — admin only
+// Snooze durations: escalating based on urgency
+// No backup ever → snooze 4h max; overdue → 8h; reminder → 24h; ok → always hidden
+function _backupSnoozeKey() { return 'kyries_backup_snooze'; }
+function _backupIsSnoozed() {
+  try {
+    const until = localStorage.getItem(_backupSnoozeKey());
+    if (!until) return false;
+    return new Date().toISOString() < until;
+  } catch(e) { return false; }
+}
+function snoozeBackupCard(hours) {
+  try {
+    const until = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+    localStorage.setItem(_backupSnoozeKey(), until);
+  } catch(e) {}
+  const el = $('dstore');
+  if (el) {
+    el.style.transition = 'opacity .3s, max-height .4s';
+    el.style.opacity = '0';
+    el.style.maxHeight = '0';
+    setTimeout(() => { el.style.display = 'none'; el.style.opacity = ''; el.style.maxHeight = ''; }, 400);
+  }
+  // Tell them when it'll come back
+  const when = hours < 1 ? `${Math.round(hours*60)} minutes`
+              : hours === 1 ? '1 hour' : `${hours} hours`;
+  notify(`⏰ Backup reminder snoozed for ${when}. Don't forget to back up!`, 'info', 4000);
+}
+
 function renderStoreDash(){
   const el=$('dstore');if(!el)return;
   if(!isAd()){el.style.display='none';return;}
+
   const days=getDaysSinceBackup();
-  let cardClass,icon,title,body,actionBtn;
+
+  // OK state — always show (no snooze needed)
+  if(days !== -1 && days < 3){
+    el.style.display='block';
+    el.innerHTML=`<div class="card dscard-ok" style="padding:12px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:20px">✅</span>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:13px">Data backed up ${days===0?'today':`${days} day${days>1?'s':''} ago`}</div>
+          <div style="font-size:11px;color:var(--tx2);margin-top:2px">Local storage only — keep backing up daily.</div>
+        </div>
+        <button class="btn bp bs" style="font-size:11px;flex-shrink:0" onclick="expData();renderStoreDash()">📥 Backup</button>
+      </div>
+    </div>`;
+    return;
+  }
+
+  // Snoozed? Hide card silently
+  if(_backupIsSnoozed()){el.style.display='none';return;}
+
+  // Determine urgency level
+  let cardClass,icon,title,body,snoozeHours,snoozeLabel;
   if(days===-1){
     cardClass='dscard-risk';icon='🚨';
     title='No backup has been made yet';
-    body='All your data — products, sales, expenses — exists only on this browser on this device. If you clear your browser cache, switch devices, or open in incognito mode, <strong>data will be lost permanently</strong>.';
-    actionBtn=true;
+    body='All your data — products, sales, expenses — exists only on this browser. If you clear cache, switch devices, or use incognito, <strong>data will be lost permanently</strong>.';
+    snoozeHours=4; snoozeLabel='Snooze 4h';
   } else if(days>=7){
     cardClass='dscard-risk';icon='⚠️';
-    title=`Backup overdue — last backup ${days} days ago`;
-    body='It\'s been over a week since your last backup. Data loss (cache clear, device change) cannot be recovered without a backup file.';
-    actionBtn=true;
-  } else if(days>=3){
-    cardClass='dscard-warn';icon='💾';
-    title=`Backup reminder — last backup ${days} days ago`;
-    body='Regular daily backups keep your data safe. Download a backup and save it to Google Drive or email it to yourself.';
-    actionBtn=true;
+    title=`Backup overdue — ${days} days since last backup`;
+    body=`It's been ${days} days. One cache clear or device change = permanent data loss. Please back up now.`;
+    snoozeHours=8; snoozeLabel='Snooze 8h';
   } else {
-    cardClass='dscard-ok';icon='✅';
-    title='Data backed up today';
-    body='Your data is safe for now. Remember: this POS is <strong>local storage only</strong> — data lives on this device and browser, not in the cloud.';
-    actionBtn=false;
+    cardClass='dscard-warn';icon='💾';
+    title=`Backup reminder — last backup ${days} day${days>1?'s':''} ago`;
+    body='Daily backups keep your data safe. Download now and save to Google Drive or email it to yourself.';
+    snoozeHours=24; snoozeLabel='Snooze 24h';
   }
+
   el.style.display='block';
   el.innerHTML=`<div class="card ${cardClass}" style="padding:14px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
-      <div style="display:flex;gap:10px;align-items:flex-start;flex:1">
+      <div style="display:flex;gap:10px;align-items:flex-start;flex:1;min-width:0">
         <div style="font-size:22px;flex-shrink:0;line-height:1.2">${icon}</div>
-        <div>
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--tx2);margin-bottom:2px">💾 Local Storage Mode</div>
+        <div style="min-width:0">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx2);margin-bottom:2px">💾 Local Storage Mode</div>
           <div style="font-weight:700;font-size:13px;margin-bottom:4px">${title}</div>
           <div style="font-size:12px;color:var(--tx2);line-height:1.55">${body}</div>
           <div style="margin-top:8px;display:flex;gap:5px;flex-wrap:wrap">
-            <span style="font-size:11px;background:var(--sf2);border:1px solid var(--bd);border-radius:10px;padding:2px 8px;color:var(--tx2)">📱 This device only</span>
-            <span style="font-size:11px;background:var(--sf2);border:1px solid var(--bd);border-radius:10px;padding:2px 8px;color:var(--tx2)">🚫 Not synced</span>
-            <span style="font-size:11px;background:var(--sf2);border:1px solid var(--bd);border-radius:10px;padding:2px 8px;color:var(--tx2)">☁️ No cloud</span>
-            <span style="font-size:11px;background:var(--rdb);border:1px solid #fca5a5;border-radius:10px;padding:2px 8px;color:var(--rdt)">🧹 Lost if cache cleared</span>
-            <span style="font-size:11px;background:var(--rdb);border:1px solid #fca5a5;border-radius:10px;padding:2px 8px;color:var(--rdt)">🕵️ Lost in incognito</span>
+            <span style="font-size:10px;background:var(--sf2);border:1px solid var(--bd);border-radius:10px;padding:2px 7px;color:var(--tx2)">📱 This device only</span>
+            <span style="font-size:10px;background:var(--sf2);border:1px solid var(--bd);border-radius:10px;padding:2px 7px;color:var(--tx2)">🚫 Not synced</span>
+            <span style="font-size:10px;background:var(--rdb);border:1px solid #fca5a5;border-radius:10px;padding:2px 7px;color:var(--rdt)">🧹 Lost if cache cleared</span>
           </div>
         </div>
       </div>
-      ${actionBtn
-        ?`<button class="btn bp bs" style="flex-shrink:0;white-space:nowrap" onclick="expData();renderStoreDash()">📥 Backup now</button>`
-        :`<button class="btn bs bo_" style="flex-shrink:0;white-space:nowrap" onclick="switchTab('settings')">⚙️ Settings</button>`}
+      <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;align-items:stretch">
+        <button class="btn bp bs" style="white-space:nowrap;font-size:12px" onclick="expData();localStorage.removeItem(_backupSnoozeKey());renderStoreDash()">📥 Backup now</button>
+        <button class="btn bs" style="white-space:nowrap;font-size:11px;color:var(--tx2)" onclick="snoozeBackupCard(${snoozeHours})">⏰ ${snoozeLabel}</button>
+      </div>
     </div>
   </div>`;
 }
@@ -24205,8 +24274,9 @@ const AI_PROVIDERS = {
     storage: 'kyries_ai_gemini_key',
     model:   'gemini-2.0-flash',
     signup:  'https://aistudio.google.com/app/apikey',
-    hint:    'Get free key at aistudio.google.com → "Get API key"',
+    hint:    '🌟 Free · Get key at <b>aistudio.google.com</b> → Get API Key (starts with AIza…)',
     placeholder: 'AIza…',
+    modelHint: 'e.g. gemini-2.0-flash, gemini-1.5-flash',
     async send(key, systemPrompt, messages) {
       // v1 stable API does NOT support system_instruction field.
       // Inject system prompt as a priming user+model exchange at the start.
@@ -24253,16 +24323,17 @@ const AI_PROVIDERS = {
     name:    'Groq Llama3',
     label:   'Groq (Free)',
     storage: 'kyries_ai_groq_key',
-    model:   'llama3-8b-8192',
+    model:   'llama-3.3-70b-versatile',
     signup:  'https://console.groq.com/keys',
-    hint:    'Get free key at console.groq.com → API Keys',
+    hint:    '⚡ Free · Get key at <b>console.groq.com</b> → API Keys (starts with gsk_…)',
     placeholder: 'gsk_…',
+    modelHint: 'e.g. llama-3.3-70b-versatile, llama-3.1-8b-instant',
     async send(key, systemPrompt, messages) {
       const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
         body: JSON.stringify({
-          model: 'llama3-8b-8192',
+          model: 'llama-3.3-70b-versatile',
           max_tokens: 1000,
           messages: [{ role: 'system', content: systemPrompt }, ...messages],
         }),
@@ -24277,6 +24348,88 @@ const AI_PROVIDERS = {
       return data?.choices?.[0]?.message?.content || '(empty response)';
     },
   },
+  openai: {
+    name: 'OpenAI', label: 'OpenAI', storage: 'kyries_ai_key_openai',
+    model: 'gpt-4o-mini', placeholder: 'sk-…',
+    hint: '🟢 Get key at <b>platform.openai.com</b> → API Keys (starts with sk-…)',
+    modelHint: 'e.g. gpt-4o, gpt-4o-mini, gpt-3.5-turbo',
+    async send(key, systemPrompt, messages) {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+        body: JSON.stringify({ model: AI.openaiModel || 'gpt-4o-mini', max_tokens: 1000,
+          messages: [{ role: 'system', content: systemPrompt }, ...messages] }),
+      });
+      if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||`HTTP ${res.status}`); }
+      return (await res.json())?.choices?.[0]?.message?.content || '(empty)';
+    },
+  },
+  anthropic: {
+    name: 'Anthropic Claude', label: 'Claude', storage: 'kyries_ai_key_anthropic',
+    model: 'claude-3-5-haiku-20241022', placeholder: 'sk-ant-…',
+    hint: '🟣 Get key at <b>console.anthropic.com</b> → API Keys',
+    modelHint: 'e.g. claude-3-5-sonnet-20241022, claude-3-5-haiku-20241022',
+    async send(key, systemPrompt, messages) {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({ model: AI.anthropicModel || 'claude-3-5-haiku-20241022', max_tokens: 1000,
+          system: systemPrompt, messages }),
+      });
+      if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||`HTTP ${res.status}`); }
+      return (await res.json())?.content?.[0]?.text || '(empty)';
+    },
+  },
+  deepseek: {
+    name: 'DeepSeek', label: 'DeepSeek', storage: 'kyries_ai_key_deepseek',
+    model: 'deepseek-chat', placeholder: 'sk-…',
+    hint: '🔵 Get key at <b>platform.deepseek.com</b> → API Keys. Note: requires account credit (very cheap, ~$0.001/msg).',
+    modelHint: 'e.g. deepseek-chat, deepseek-reasoner',
+    async send(key, systemPrompt, messages) {
+      const res = await fetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+        body: JSON.stringify({ model: AI.deepseekModel || 'deepseek-chat', max_tokens: 1000,
+          messages: [{ role: 'system', content: systemPrompt }, ...messages] }),
+      });
+      if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||`HTTP ${res.status}`); }
+      return (await res.json())?.choices?.[0]?.message?.content || '(empty)';
+    },
+  },
+  grok: {
+    name: 'xAI Grok', label: 'Grok', storage: 'kyries_ai_key_grok',
+    model: 'grok-2-1212', placeholder: 'xai-…',
+    hint: '🐦 Get key at <b>console.x.ai</b> → API Keys',
+    modelHint: 'e.g. grok-2-1212, grok-2-latest',
+    async send(key, systemPrompt, messages) {
+      const res = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+        body: JSON.stringify({ model: AI.grokModel || 'grok-2-1212', max_tokens: 1000,
+          messages: [{ role: 'system', content: systemPrompt }, ...messages] }),
+      });
+      if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||`HTTP ${res.status}`); }
+      return (await res.json())?.choices?.[0]?.message?.content || '(empty)';
+    },
+  },
+  custom: {
+    name: 'Custom', label: 'Custom', storage: 'kyries_ai_key_custom',
+    model: '', placeholder: 'API key…', custom: true,
+    hint: '⚙️ Enter your base URL below — must be OpenAI-compatible (/chat/completions endpoint)',
+    modelHint: 'Enter exact model name required by your endpoint',
+    async send(key, systemPrompt, messages) {
+      const url = AI.customEndpoint || localStorage.getItem('kyries_ai_endpoint_custom') || '';
+      if (!url) throw new Error('Please set a custom endpoint URL');
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+        body: JSON.stringify({ model: AI.customModel || '', max_tokens: 1000,
+          messages: [{ role: 'system', content: systemPrompt }, ...messages] }),
+      });
+      if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e?.error?.message||`HTTP ${res.status}`); }
+      return (await res.json())?.choices?.[0]?.message?.content || '(empty)';
+    },
+  }
 };
 
 const AI_KEY_STORAGE = 'kyries_ai_gemini_key'; // default for legacy compat
@@ -24294,10 +24447,32 @@ const AI = {
 // ── LOAD SAVED KEY ON STARTUP ────────────────────────────────────────
 (function aiLoadKey(){
   try {
-    const gk = localStorage.getItem('kyries_ai_gemini_key');
-    if (gk) { AI.key = gk; AI.provider = 'gemini'; return; }
-    const qk = localStorage.getItem('kyries_ai_groq_key');
-    if (qk) { AI.key = qk; AI.provider = 'groq'; return; }
+    // First: check if a provider was explicitly saved last time
+    const savedProv = localStorage.getItem('kyries_ai_provider');
+    if (savedProv) {
+      const savedKey = localStorage.getItem('kyries_ai_key_' + savedProv)
+        || localStorage.getItem('kyries_ai_' + savedProv + '_key'); // legacy format
+      if (savedKey) {
+        AI.key = savedKey; AI.provider = savedProv;
+        AI.activeProvider = savedProv;
+        // Also load custom endpoint + model overrides
+        AI.customEndpoint = localStorage.getItem('kyries_ai_endpoint_custom') || null;
+        AI[savedProv + 'Model'] = localStorage.getItem('kyries_ai_model_' + savedProv) || null;
+        return;
+      }
+    }
+    // Fallback: scan all known providers in order of preference
+    const provOrder = ['gemini','groq','openai','anthropic','deepseek','grok','custom'];
+    for (const p of provOrder) {
+      const k = localStorage.getItem('kyries_ai_key_' + p)
+             || localStorage.getItem('kyries_ai_' + p + '_key'); // legacy key format
+      if (k) {
+        AI.key = k; AI.provider = p; AI.activeProvider = p;
+        AI.customEndpoint = localStorage.getItem('kyries_ai_endpoint_custom') || null;
+        AI[p + 'Model'] = localStorage.getItem('kyries_ai_model_' + p) || null;
+        return;
+      }
+    }
   } catch(e) {}
 })();
 
@@ -24336,43 +24511,36 @@ function aiRenderSetupCard() {
     <div style="display:flex;gap:10px;align-items:flex-start">
       <span style="font-size:28px;flex-shrink:0">🔑</span>
       <div style="flex:1">
-        <div style="font-weight:700;font-size:14px;margin-bottom:6px">Connect a FREE AI API Key</div>
+        <div style="font-weight:700;font-size:14px;margin-bottom:6px">Connect your AI API Key</div>
         <div style="font-size:12px;color:var(--tx2);margin-bottom:12px;line-height:1.6">
-          Choose a provider below — both are <strong>100% free</strong>, no credit card needed.<br>
+          Works with any provider — Gemini, Groq, OpenAI, Claude, DeepSeek, Grok, or any custom endpoint.<br>
           Your key is saved <strong>only on this device</strong>.
         </div>
-        <!-- Provider tabs -->
-        <div style="display:flex;gap:6px;margin-bottom:12px">
-          <button id="ai-tab-gemini" class="btn bp bs" onclick="aiSelectProvider('gemini')" style="flex:1">
-            🌟 Google Gemini Flash<br><span style="font-size:10px;font-weight:400;opacity:.85">Recommended · Free tier: 1,500 req/day</span>
-          </button>
-          <button id="ai-tab-groq" class="btn bs" onclick="aiSelectProvider('groq')" style="flex:1;color:var(--tx2)">
-            ⚡ Groq Llama3<br><span style="font-size:10px;font-weight:400">Fast · Free tier: generous daily limit</span>
-          </button>
+        <!-- Provider dropdown -->
+        <div style="margin-bottom:10px">
+          <label class="fl">Provider</label>
+          <select id="ai-provider-dropdown" onchange="aiOnProviderChange(this.value)" style="width:100%;margin-bottom:8px;padding:8px 10px;font-size:13px;border-radius:var(--rs);border:1px solid var(--bd);background:var(--sf2);color:var(--tx)">
+            <option value="gemini">🌟 Google Gemini Flash — Free (1,500 req/day)</option>
+            <option value="groq">⚡ Groq — Free (fast inference)</option>
+            <option value="openai">🟢 OpenAI — GPT-4o / GPT-4o-mini</option>
+            <option value="anthropic">🟣 Anthropic — Claude 3.5 Sonnet</option>
+            <option value="deepseek">🔵 DeepSeek — Very cheap</option>
+            <option value="grok">🐦 xAI Grok</option>
+            <option value="custom">⚙️ Custom / OpenAI-compatible endpoint</option>
+          </select>
+          <label class="fl" id="ai-model-label">Model <span id="ai-model-hint" style="font-size:10px;color:var(--tx3)"></span></label>
+          <input type="text" id="ai-model-input" placeholder="e.g. gemini-1.5-flash" style="width:100%;margin-bottom:8px"/>
+          <div id="ai-custom-endpoint-row" style="display:none">
+            <label class="fl">Custom API Base URL</label>
+            <input type="text" id="ai-custom-endpoint" placeholder="https://api.example.com/v1/chat/completions" style="width:100%;margin-bottom:8px"/>
+          </div>
+          <div id="ai-provider-hint" style="font-size:11px;color:var(--tx2);margin-bottom:8px;line-height:1.5"></div>
         </div>
-        <div id="ai-prov-gemini">
-          <div class="al alg" style="font-size:12px;margin-bottom:10px;line-height:1.6">
-            <strong>How to get your FREE Gemini key:</strong><br>
-            1. Go to <strong>aistudio.google.com</strong> (sign in with Google)<br>
-            2. Click <strong>"Get API key"</strong> → <strong>"Create API key"</strong><br>
-            3. Copy the key (starts with <code>AIza</code>) and paste below
-          </div>
+        <!-- Unified key input — all providers use this one field -->
+        <div>
+          <div id="ai-provider-hint" style="font-size:11px;color:var(--tx2);margin-bottom:8px;line-height:1.5;padding:6px 10px;background:var(--sf2);border-radius:var(--rs)"></div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <input type="password" id="ai-key-input" placeholder="AIza…" style="flex:1;min-width:180px;font-family:monospace;font-size:13px"/>
-            <button class="btn bp" onclick="aiSaveKey()">💾 Save Key</button>
-          </div>
-        </div>
-
-        <!-- Groq instructions -->
-        <div id="ai-prov-groq" style="display:none">
-          <div class="al alb" style="font-size:12px;margin-bottom:10px;line-height:1.6">
-            <strong>How to get your FREE Groq key:</strong><br>
-            1. Go to <strong>console.groq.com</strong> → Sign up (free)<br>
-            2. Go to <strong>API Keys</strong> → <strong>"Create API Key"</strong><br>
-            3. Copy the key (starts with <code>gsk_</code>) and paste below
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <input type="password" id="ai-key-input" placeholder="gsk_…" style="flex:1;min-width:180px;font-family:monospace;font-size:13px"/>
+            <input type="password" id="ai-key-input" placeholder="Paste API key here…" style="flex:1;min-width:180px;font-family:monospace;font-size:13px"/>
             <button class="btn bp" onclick="aiSaveKey()">💾 Save Key</button>
           </div>
         </div>
@@ -24391,18 +24559,35 @@ function aiRenderSetupCard() {
 }
 
 // ── PROVIDER TAB SWITCHER ────────────────────────────────────────────
+// Provider metadata — add any new provider here, zero JS changes needed elsewhere
+// AI_PROVIDERS defined above
+
 function aiSelectProvider(id) {
   AI._setupProvider = id;
-  const gBtn = $('ai-tab-gemini');
-  const qBtn = $('ai-tab-groq');
-  const gDiv = $('ai-prov-gemini');
-  const qDiv = $('ai-prov-groq');
-  if (gBtn) gBtn.className = id === 'gemini' ? 'btn bp bs' : 'btn bs';
-  if (gBtn) gBtn.style.color = id === 'gemini' ? '' : 'var(--tx2)';
-  if (qBtn) qBtn.className = id === 'groq'   ? 'btn bp bs' : 'btn bs';
-  if (qBtn) qBtn.style.color = id === 'groq' ? '' : 'var(--tx2)';
-  if (gDiv) gDiv.style.display = id === 'gemini' ? 'block' : 'none';
-  if (qDiv) qDiv.style.display = id === 'groq'   ? 'block' : 'none';
+  // Sync dropdown if present
+  const dd = $('ai-provider-dropdown');
+  if (dd) dd.value = id;
+  aiOnProviderChange(id);
+}
+
+function aiOnProviderChange(id) {
+  if (!id) { const dd = $('ai-provider-dropdown'); id = dd ? dd.value : 'gemini'; }
+  AI._setupProvider = id;
+  const prov = AI_PROVIDERS[id] || AI_PROVIDERS.gemini;
+  // Update hints
+  const hint = $('ai-provider-hint');
+  if (hint) hint.innerHTML = prov.hint;
+  // Update key input placeholder
+  const keyInput = $('ai-key-input');
+  if (keyInput) keyInput.placeholder = prov.placeholder;
+  // Update model field
+  const modelInput = $('ai-model-input');
+  if (modelInput) { modelInput.placeholder = prov.modelHint; if (!modelInput.value) modelInput.value = prov.model; }
+  const modelHint = $('ai-model-hint');
+  if (modelHint) modelHint.textContent = prov.modelHint;
+  // Custom endpoint row
+  const customRow = $('ai-custom-endpoint-row');
+  if (customRow) customRow.style.display = prov.custom ? 'block' : 'none';
 }
 
 // ── SAVE API KEY ─────────────────────────────────────────────────────
@@ -24417,25 +24602,31 @@ function aiSaveKey() {
     return;
   }
 
-  // Basic format check
-  if (prov === 'gemini' && !key.startsWith('AIza')) {
-    if (msgEl) msgEl.innerHTML = '<div class="al alr" style="font-size:12px">❌ Gemini keys start with <strong>AIza</strong>. Check you copied the full key.</div>';
-    return;
+  // Save key for this provider
+  try { localStorage.setItem('kyries_ai_key_' + prov, key); } catch(e) {}
+  // Save selected provider
+  try { localStorage.setItem('kyries_ai_provider', prov); } catch(e) {}
+  // Save model override if user typed one
+  const modelEl = $('ai-model-input');
+  if (modelEl && modelEl.value.trim()) {
+    try { localStorage.setItem('kyries_ai_model_' + prov, modelEl.value.trim()); } catch(e) {}
+    AI[prov + 'Model'] = modelEl.value.trim();
   }
-  if (prov === 'groq' && !key.startsWith('gsk_')) {
-    if (msgEl) msgEl.innerHTML = '<div class="al alr" style="font-size:12px">❌ Groq keys start with <strong>gsk_</strong>. Check you copied the full key.</div>';
-    return;
+  // Save custom endpoint if set
+  const epEl = $('ai-custom-endpoint');
+  if (epEl && epEl.value.trim()) {
+    try { localStorage.setItem('kyries_ai_endpoint_custom', epEl.value.trim()); } catch(e) {}
+    AI.customEndpoint = epEl.value.trim();
   }
-
-  const storageKey = prov === 'gemini' ? 'kyries_ai_gemini_key' : 'kyries_ai_groq_key';
-  try { localStorage.setItem(storageKey, key); } catch(e) {}
 
   AI.key      = key;
   AI.provider = prov;
+  AI.activeProvider = prov;
   AI.demo     = false;
   if (input) input.value = '';
 
-  if (msgEl) msgEl.innerHTML = `<div class="al alg" style="font-size:12px">✅ ${AI_PROVIDERS[prov].label} key saved! Testing connection…</div>`;
+  const provName = (AI_PROVIDERS[prov] || {}).hint ? prov.charAt(0).toUpperCase()+prov.slice(1) : prov;
+  if (msgEl) msgEl.innerHTML = `<div class="al alg" style="font-size:12px">✅ ${provName} key saved! Testing connection…</div>`;
 
   // Test the key with a quick ping
   aiTestKey(key, prov, msgEl);
@@ -24455,9 +24646,10 @@ async function aiTestKey(key, prov, msgEl) {
       // Key is valid — no need to do a full generateContent test
       if (msgEl) msgEl.innerHTML = `<div class="al alg" style="font-size:12px">✅ Key verified! Connected to Gemini 2.0 Flash.</div>`;
     } else {
-      // Groq — do a real small completion
-      const reply = await AI_PROVIDERS[prov].send(key, 'You are a helpful assistant.', [{ role: 'user', content: 'Say OK.' }]);
-      if (msgEl) msgEl.innerHTML = `<div class="al alg" style="font-size:12px">✅ Connected to ${AI_PROVIDERS[prov].label}!</div>`;
+      // For all other providers: skip the test call — just trust the key.
+      // A test call can fail for many valid reasons (model name, credits, CORS, etc.)
+      // and would wrongly tell the user their key is invalid.
+      if (msgEl) msgEl.innerHTML = `<div class="al alg" style="font-size:12px">✅ Key saved for ${AI_PROVIDERS[prov]?.name || prov}. Send a message to verify it works.</div>`;
     }
     setTimeout(() => {
       const sc = $('ai-setup-card');
@@ -24588,8 +24780,19 @@ function aiForceShowKeyInput() {
 function aiDisconnect() {
   if (!confirm('Disconnect AI? You can reconnect anytime with a new key.')) return;
   try {
+    // Clear all provider keys
+    const _dp = AI.provider;
+    if (_dp) {
+      localStorage.removeItem('kyries_ai_key_' + _dp);
+      localStorage.removeItem('kyries_ai_' + _dp + '_key');
+    }
+    // Also clear legacy keys and the saved provider
     localStorage.removeItem('kyries_ai_gemini_key');
     localStorage.removeItem('kyries_ai_groq_key');
+    localStorage.removeItem('kyries_ai_provider');
+    ['openai','anthropic','deepseek','grok','custom'].forEach(p => {
+      localStorage.removeItem('kyries_ai_key_' + p);
+    });
   } catch(e) {}
   AI.key = null; AI.demo = false; AI.provider = 'gemini';
   aiRenderSetupCard();
@@ -24655,24 +24858,70 @@ function aiBuildContext() {
     `• ${p.nm} | Cat:${p.cat} | Sell:₱${p.sell} | Buy:₱${p.buy} | Stock:${p.stock} | Sold:${p.sold||0} | Margin:${p.buy>0?Math.round(((p.sell-p.buy)/p.buy)*100):0}%`
   ).join('\n');
 
-  return `You are an AI store assistant for "${S.settings?.storeName||"Kyrie's Sari-Sari Store"}" in the Philippines.
-You have full access to the store's live data. Be concise, practical, and friendly. Use Filipino context (₱ pesos, sari-sari store culture, local products).
-Keep answers under 250 words unless a detailed breakdown is asked. Use bullet points for lists.
+  // ── SHIFTS ─────────────────────────────────────────────────────
+  const openShift = (S.shifts||[]).find(sh=>sh.status==='open');
+  const shiftInfo = openShift
+    ? `OPEN — by ${openShift.openedBy}, since ${new Date(openShift.openedAt).toLocaleString('en-PH')}, opening cash ₱${openShift.openingCash||0}`
+    : `No open shift right now`;
+  const totalShifts = (S.shifts||[]).length;
+
+  // ── USERS ───────────────────────────────────────────────────────
+  const activeUsers = (S.users||[]).filter(u=>!u._deleted);
+  const userSummary = activeUsers.map(u=>`${u.nm} (${u.role}${u.un?', @'+u.un:''})`).join(', ');
+
+  // ── CREDIT / UTANG ──────────────────────────────────────────────
+  const creditCusts = (S.creditCustomers||[]).filter(c=>!c._deleted);
+  const openCredit = creditCusts.filter(c=>c.balance>0);
+  const totalCredit = openCredit.reduce((s,c)=>s+(c.balance||0),0);
+  const blockedCredit = creditCusts.filter(c=>c.blocked).length;
+
+  // ── GCASH ───────────────────────────────────────────────────────
+  const gcashToday = (S.gcashLog||[]).filter(g=>{
+    try{return new Date(g.at).toLocaleDateString('en-PH')===todayStr;}catch(e){return false;}
+  });
+  const gcashTodayFees = gcashToday.reduce((s,g)=>s+(g.fee||0),0);
+
+  // ── RECENT AUDIT ────────────────────────────────────────────────
+  const recentAudit = (S.auditLog||[]).slice(-5).map(a=>`[${new Date(a.ts||a.at||'').toLocaleDateString('en-PH')}] ${a.action}: ${a.detail}`).join('\n');
+
+  // ── SYSTEM INFO ─────────────────────────────────────────────────
+  const lastBackupDays = S.lastBackup ? Math.floor((Date.now()-new Date(S.lastBackup))/86400000) : -1;
+  const backupStatus = lastBackupDays < 0 ? 'NEVER backed up ⚠' : lastBackupDays === 0 ? 'Backed up today ✓' : `Last backup ${lastBackupDays} day(s) ago`;
+
+  return `You are an AI store assistant for "${S.settings?.storeName||"Kyrie's Sari-Sari Store"}" — a sari-sari store POS system in the Philippines.
+You have FULL access to all live store data below. Be concise, practical, and helpful. Use ₱ pesos. Answer in Filipino context.
+Keep answers under 300 words unless detail is requested. Use bullets for lists.
+If you spot anomalies (low stock, overdue credit, cash discrepancy, unusual sales), proactively mention them.
 
 === LIVE STORE SNAPSHOT (${now}) ===
 Store: ${S.settings?.storeName||"Kyrie's Sari-Sari Store"} | ${S.settings?.address||'Philippines'}
-Total products: ${prods.length}
+Total products: ${prods.length} active
 
 TODAY: Revenue ₱${todayRev.toFixed(2)} · ${todayTxns.length} sales · Profit ₱${todayProfit.toFixed(2)}
 LAST 7 DAYS: Revenue ₱${weekRev.toFixed(2)} · ${weekTxns.length} transactions
-TOTAL ALL-TIME TRANSACTIONS: ${txns.length}
+ALL-TIME TRANSACTIONS: ${txns.length}
 
-STOCK ALERTS:
-- Low stock (${lowStock.length}): ${lowStock.slice(0,10).join(', ')||'none'}
-- Out of stock (${outStock.length}): ${outStock.slice(0,10).join(', ')||'none'}
-
-TOP SELLERS: ${topSellers.join(' | ')||'no sales data yet'}
+STOCK: Low stock (${lowStock.length}): ${lowStock.slice(0,8).join(', ')||'none'} | Out of stock (${outStock.length}): ${outStock.slice(0,8).join(', ')||'none'}
+TOP SELLERS: ${topSellers.join(' | ')||'no data'}
 EXPENSES THIS MONTH: ₱${monthExpenses.toFixed(2)}
+
+=== SHIFT STATUS ===
+${shiftInfo} | Total shifts recorded: ${totalShifts}
+
+=== USERS (${activeUsers.length}) ===
+${userSummary||'No users'}
+
+=== CREDIT / UTANG ===
+Open balances: ${openCredit.length} customers | Total owed: ₱${totalCredit.toFixed(2)} | Blocked: ${blockedCredit}
+
+=== GCASH TODAY ===
+${gcashToday.length} transactions | Fees collected: ₱${gcashTodayFees.toFixed(2)}
+
+=== RECENT ACTIVITY (last 5 audit events) ===
+${recentAudit||'No audit log yet'}
+
+=== SYSTEM ===
+Backup: ${backupStatus} | Version: KPOS V9.1
 
 === FULL PRODUCT CATALOG ===
 ${prodSummary||'No products yet.'}`;
@@ -25225,10 +25474,162 @@ function siAutoFill(data, statusEl, detailEl) {
 window.addEventListener('online',  () => { if ($('sizone')?.style.display !== 'none') siResetZone(false); });
 window.addEventListener('offline', () => { if ($('sizone')?.style.display !== 'none') siResetZone(false); });
 
+
+// ── AI FLOATING WIDGET ───────────────────────────────────────────────────
+function aiWidgetToggle() {
+  const w = $('ai-float-widget');
+  if (!w) return;
+  w.style.display = w.style.display === 'flex' ? 'none' : 'flex';
+}
+function aiWidgetClose() {
+  const w = $('ai-float-widget');
+  if (w) w.style.display = 'none';
+}
+function aiWidgetFlip() {
+  const w = $('ai-float-widget');
+  const btn = $('ai-float-btn');
+  if (!w) return;
+  const isLeft = w.classList.toggle('left-side');
+  if (btn) { btn.style.right = isLeft ? 'auto' : '16px'; btn.style.left = isLeft ? '16px' : 'auto'; }
+}
+
+// Drag to left/right edge snap
+let _wDragState = null;
+function aiWidgetDragStart(e) {
+  if (e.target.tagName === 'BUTTON') return;
+  const w = $('ai-float-widget');
+  const touch = e.touches ? e.touches[0] : e;
+  _wDragState = { startX: touch.clientX, isLeft: w.classList.contains('left-side') };
+  document.onmousemove = document.ontouchmove = aiWidgetDragMove;
+  document.onmouseup  = document.ontouchend  = aiWidgetDragEnd;
+}
+function aiWidgetDragMove(e) {
+  if (!_wDragState) return;
+  const touch = e.touches ? e.touches[0] : e;
+  const dx = touch.clientX - _wDragState.startX;
+  // Snap to left if dragged left, right if dragged right
+  const w = $('ai-float-widget');
+  const btn = $('ai-float-btn');
+  if (dx < -60 && !w.classList.contains('left-side')) {
+    w.classList.add('left-side');
+    if (btn) { btn.style.right='auto'; btn.style.left='16px'; }
+  } else if (dx > 60 && w.classList.contains('left-side')) {
+    w.classList.remove('left-side');
+    if (btn) { btn.style.right='16px'; btn.style.left='auto'; }
+  }
+}
+function aiWidgetDragEnd() { _wDragState = null; document.onmousemove = document.ontouchmove = document.onmouseup = document.ontouchend = null; }
+
+function aiWidgetKeydown(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); aiWidgetSend(); } }
+
+async function aiWidgetSend() {
+  const inp = $('ai-widget-input');
+  const body = $('ai-widget-body');
+  if (!inp || !body) return;
+  const txt = inp.value.trim();
+  if (!txt) return;
+  inp.value = '';
+  // User bubble
+  const userDiv = document.createElement('div');
+  userDiv.style.cssText = 'align-self:flex-end;background:var(--gn);color:#fff;padding:8px 12px;border-radius:12px 12px 2px 12px;max-width:85%;font-size:13px;word-break:break-word';
+  userDiv.textContent = txt;
+  body.appendChild(userDiv);
+  body.scrollTop = body.scrollHeight;
+  // AI bubble placeholder
+  const aiDiv = document.createElement('div');
+  aiDiv.style.cssText = 'align-self:flex-start;background:var(--sf2);padding:8px 12px;border-radius:12px 12px 12px 2px;max-width:85%;font-size:13px;word-break:break-word;border:1px solid var(--bd)';
+  aiDiv.textContent = '…';
+  body.appendChild(aiDiv);
+  body.scrollTop = body.scrollHeight;
+  // Build context-rich prompt
+  const ctx = aiGetStoreContext();
+  const resp = await aiCall(txt + '\n\n[Store context]:\n' + ctx);
+  aiDiv.textContent = resp || '(no response)';
+  body.scrollTop = body.scrollHeight;
+}
+
+// Show the floating button once user is logged in
+function aiWidgetShow() { const b=$('ai-float-btn'); if(b) b.style.display='flex'; }
+function aiWidgetHide() { const b=$('ai-float-btn'); if(b) b.style.display='none'; aiWidgetClose(); }
+
+
+// ── FLOAT CHAT DRAG & FLIP ────────────────────────────────────────────────
+let _fcDrag = null;
+let _fcPos  = { right: 20, bottom: 78 }; // track current position
+let _fcLeft = true; // which side — default left
+
+function fcFlipSide() {
+  _fcLeft = !_fcLeft;
+  const panel = $('float-chat-panel');
+  const btn   = $('float-chat-btn');
+  if (!panel) return;
+  if (_fcLeft) {
+    panel.style.right = 'auto'; panel.style.left = '20px';
+    if (btn) { btn.style.right='auto'; btn.style.left='20px'; }
+  } else {
+    panel.style.left = 'auto'; panel.style.right = '20px';
+    if (btn) { btn.style.left='auto'; btn.style.right='20px'; }
+  }
+}
+
+function fcDragStart(e) {
+  if (e.target.tagName === 'BUTTON') return;
+  const panel = $('float-chat-panel');
+  if (!panel) return;
+  const touch = e.touches ? e.touches[0] : e;
+  const rect  = panel.getBoundingClientRect();
+  _fcDrag = { startX: touch.clientX, startY: touch.clientY, initRight: rect.right, initTop: rect.top };
+  const hd = $('float-chat-hd');
+  if (hd) hd.style.cursor = 'grabbing';
+  document.addEventListener('mousemove', fcDragMove, { passive: false });
+  document.addEventListener('mouseup',   fcDragEnd);
+  document.addEventListener('touchmove', fcDragMove, { passive: false });
+  document.addEventListener('touchend',  fcDragEnd);
+  e.preventDefault();
+}
+
+function fcDragMove(e) {
+  if (!_fcDrag) return;
+  const panel = $('float-chat-panel');
+  if (!panel) return;
+  const touch = e.touches ? e.touches[0] : e;
+  const dx = touch.clientX - _fcDrag.startX;
+  const dy = touch.clientY - _fcDrag.startY;
+  const newTop   = Math.max(10, Math.min(window.innerHeight - 80, _fcDrag.initTop + dy));
+  // Snap to left or right edge based on where cursor is
+  const snapLeft = touch.clientX < window.innerWidth / 2;
+  if (snapLeft) {
+    panel.style.right = 'auto'; panel.style.left = '20px';
+    _fcLeft = true;
+  } else {
+    panel.style.left = 'auto'; panel.style.right = '20px';
+    _fcLeft = false;
+  }
+  panel.style.top    = newTop + 'px';
+  panel.style.bottom = 'auto';
+  e.preventDefault();
+}
+
+function fcDragEnd() {
+  _fcDrag = null;
+  const hd = $('float-chat-hd');
+  if (hd) hd.style.cursor = 'grab';
+  // Also snap the button
+  const btn = $('float-chat-btn');
+  if (btn) {
+    if (_fcLeft) { btn.style.right='auto'; btn.style.left='20px'; }
+    else         { btn.style.left='auto';  btn.style.right='20px'; }
+  }
+  document.removeEventListener('mousemove', fcDragMove);
+  document.removeEventListener('mouseup',   fcDragEnd);
+  document.removeEventListener('touchmove', fcDragMove);
+  document.removeEventListener('touchend',  fcDragEnd);
+}
+
 </script>
 <!-- V9.0.C: FLOATING AI CHATBOT (bottom-right, visible to all users) -->
 <div id="float-chat-btn" onclick="toggleFloatChat()" title="AI Store Assistant"
-  style="position:fixed;bottom:20px;right:20px;width:50px;height:50px;border-radius:50%;
+  style="position:fixed;bottom:20px;left:20px;width:50px;height:50px;border-radius:50%;
          background:linear-gradient(135deg,#00d4aa,#0066ff);color:#fff;font-size:22px;
          display:none;align-items:center;justify-content:center;cursor:pointer;
          box-shadow:0 4px 20px rgba(0,212,170,.4);z-index:800;border:none;
@@ -25238,7 +25639,7 @@ window.addEventListener('offline', () => { if ($('sizone')?.style.display !== 'n
     width:16px;height:16px;align-items:center;justify-content:center">1</span>
 </div>
 
-<div id="float-chat-panel" style="display:none;position:fixed;bottom:78px;right:20px;
+<div id="float-chat-panel" style="display:none;position:fixed;bottom:78px;left:20px;
   width:340px;height:460px;background:var(--sf);border:1px solid var(--bd);
   border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.5);z-index:800;
   flex-direction:column;overflow:hidden;
@@ -25246,9 +25647,10 @@ window.addEventListener('offline', () => { if ($('sizone')?.style.display !== 'n
   <style>
     @keyframes floatIn{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
   </style>
-  <!-- Header -->
-  <div style="background:linear-gradient(135deg,#00d4aa22,#0066ff22);border-bottom:1px solid var(--bd);
-    padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+  <!-- Header — drag here to move widget -->
+  <div id="float-chat-hd" onmousedown="fcDragStart(event)" ontouchstart="fcDragStart(event)"
+    style="background:linear-gradient(135deg,#00d4aa22,#0066ff22);border-bottom:1px solid var(--bd);
+    padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;cursor:grab">
     <div style="display:flex;align-items:center;gap:8px">
       <span style="font-size:18px">🤖</span>
       <div>
@@ -25256,7 +25658,11 @@ window.addEventListener('offline', () => { if ($('sizone')?.style.display !== 'n
         <div style="font-size:10px;color:var(--tx2)" id="float-chat-status">Loading…</div>
       </div>
     </div>
-    <button onclick="toggleFloatChat()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--tx2)">✕</button>
+    <div style="display:flex;align-items:center;gap:4px">
+      <button onclick="fcFlipSide()" title="Flip to other side"
+        style="background:none;border:none;cursor:pointer;font-size:15px;color:var(--tx2);padding:2px 5px" title="Move to other side">⇄</button>
+      <button onclick="toggleFloatChat()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--tx2)">✕</button>
+    </div>
   </div>
   <!-- Messages -->
   <div id="float-chat-msgs" style="flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch">
